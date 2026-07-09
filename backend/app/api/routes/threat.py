@@ -8,6 +8,12 @@ router = APIRouter(
 
 
 @router.get("/")
+
 def get_all():
 
     return threat_service.get_all()
+
+@router.post("/sync")
+def sync():
+
+    return threat_service.sync()

@@ -12,3 +12,11 @@ class BaseRepository:
 
     def delete_all(self):
         self.collection.delete_many({})
+
+    def upsert(self, document, key="cve"):
+
+        self.collection.update_one(
+            {key: document[key]},
+            {"$set": document},
+            upsert=True
+        )

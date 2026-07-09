@@ -1,0 +1,81 @@
+{
+  "products": [
+    {
+      "name": "Grafana",
+      "aliases": [
+        "grafana"
+      ],
+      "criticality": 5,
+      "internet_facing": false
+    },
+    {
+      "name": "OpenSearch",
+      "aliases": [
+        "opensearch"
+      ],
+      "criticality": 5,
+      "internet_facing": false
+    },
+    {
+      "name": "JumpCloud",
+      "aliases": [
+        "jumpcloud"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "CrowdStrike",
+      "aliases": [
+        "crowdstrike",
+        "falcon"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "AWS",
+      "aliases": [
+        "amazon",
+        "aws"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "OCI",
+      "aliases": [
+        "oracle",
+        "oci"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "Kubernetes",
+      "aliases": [
+        "kubernetes",
+        "k8s"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "Docker",
+      "aliases": [
+        "docker"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "ArgoCD",
+      "aliases": [
+        "argocd",
+        "argo"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    }
+  ]
+}
