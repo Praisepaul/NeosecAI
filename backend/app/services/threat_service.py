@@ -33,7 +33,6 @@ class ThreatService:
 
         raw = job["raw"]
 
-
         #
         # Normalize
         #
@@ -46,7 +45,7 @@ class ThreatService:
 
         github_data = github_collector.collect(cves)
 
-        print(f"Normalization        : {time.perf_counter() - start:.2f} sec")
+        print(f"GitHub Collection        : {time.perf_counter() - start:.2f} sec")
 
         stored = 0
 
@@ -56,20 +55,27 @@ class ThreatService:
 
         enrich_time = 0
         mongo_time = 0
+        merge_time = 0
 
-        for finding in findings:
-
+        for nvd_finding in findings:
             t = time.perf_counter()
-            github = github_data.get(finding["cve"])
+
+            github = github_data.get(nvd_finding["cve"])
 
             github_normalized = None
 
             if github:
                 github_normalized = github_normalizer.normalize(github)
 
-            finding = merger.merge( nvd=finding, github=github_normalized )
+            threat = merger.merge(
+            nvd=nvd_finding,
+            github=github_normalized,
+            cisa=None,
+            epss=None
+        )
+            merge_time += time.perf_counter() - t
 
-            enriched = engine.enrich(finding)
+            enriched = engine.enrich(threat)
 
             enrich_time += time.perf_counter() - t
 
@@ -83,7 +89,7 @@ class ThreatService:
 
         print(f"Enrichment           : {enrich_time:.2f} sec")
         print(f"MongoDB Upserts      : {mongo_time:.2f} sec")
-
+        print(f"Threat Merge         : {merge_time:.2f} sec")
         print("-" * 70)
         print(f"TOTAL                : {time.perf_counter() - total_start:.2f} sec")
         print("=" * 70)
