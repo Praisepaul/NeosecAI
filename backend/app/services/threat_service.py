@@ -1,8 +1,12 @@
+import time
+
 from app.jobs.job_manager import job_manager
 from app.normalizers.nvd_normalizer import normalizer
 from app.enrichers.enrichment_engine import engine
 from app.repositories.threat_repository import threat_repository
-
+from app.collectors.github_collector import collector as github_collector
+from app.normalizers.github_normalizer import normalizer as github_normalizer
+from app.merger.threat_merger import merger
 
 class ThreatService:
 
@@ -11,24 +15,78 @@ class ThreatService:
 
     def sync(self):
 
-        # Run collector through Job Manager
+        total_start = time.perf_counter()
+
+        print("=" * 70)
+        print("Threat Synchronization Started")
+        print("=" * 70)
+
+        #
+        # Collector
+        #
+
+        start = time.perf_counter()
+
         job = job_manager.run("nvd")
+
+        print(f"Job Manager          : {time.perf_counter() - start:.2f} sec")
 
         raw = job["raw"]
 
+
+        #
         # Normalize
+        #
+
+        start = time.perf_counter()
+
         findings = normalizer.normalize(raw)
+
+        cves = [finding["cve"] for finding in findings]
+
+        github_data = github_collector.collect(cves)
+
+        print(f"Normalization        : {time.perf_counter() - start:.2f} sec")
 
         stored = 0
 
+        #
         # Enrich + Store
+        #
+
+        enrich_time = 0
+        mongo_time = 0
+
         for finding in findings:
+
+            t = time.perf_counter()
+            github = github_data.get(finding["cve"])
+
+            github_normalized = None
+
+            if github:
+                github_normalized = github_normalizer.normalize(github)
+
+            finding = merger.merge( nvd=finding, github=github_normalized )
 
             enriched = engine.enrich(finding)
 
+            enrich_time += time.perf_counter() - t
+
+            t = time.perf_counter()
+
             threat_repository.upsert(enriched)
 
+            mongo_time += time.perf_counter() - t
+
             stored += 1
+
+        print(f"Enrichment           : {enrich_time:.2f} sec")
+        print(f"MongoDB Upserts      : {mongo_time:.2f} sec")
+
+        print("-" * 70)
+        print(f"TOTAL                : {time.perf_counter() - total_start:.2f} sec")
+        print("=" * 70)
 
         return {
             "status": "SUCCESS",

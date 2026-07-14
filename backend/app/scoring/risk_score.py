@@ -26,8 +26,9 @@ class RiskScore:
 
         epss = finding.get("epss")
 
-        if epss is not None:
-            score += min(float(epss) * 15, 15)
+        if epss:
+
+            score += min(epss["score"] * 15, 15)
 
         return min(round(score), 100)
 
