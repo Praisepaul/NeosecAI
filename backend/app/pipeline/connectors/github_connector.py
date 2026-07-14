@@ -1,13 +1,18 @@
 from app.collectors.github_collector import collector
 from app.normalizers.github_normalizer import normalizer
+from app.utils.retry import retry
 
 
 class GitHubConnector:
 
     def collect(self, cves):
 
-        raw = collector.collect(cves)
+        def fetch():
+            return collector.collect(cves)
 
+        raw = retry(fetch)
+        if raw is None:
+            return {}
         normalized = {}
 
         for cve, advisories in raw.items():

@@ -27,7 +27,7 @@ class ThreatService:
 
         print(f"Collector Download : {timings['collector']:.2f} sec")
         print(f"NVD Normalize      : {timings['nvd_normalization']:.2f} sec")
-        print(f"GitHub Collection  : {timings['github_collection']:.2f} sec")
+        print(f"Intelligence Collection : {timings['intelligence_collection']:.2f} sec")
         print(f"Threat Merge       : {timings['merge']:.2f} sec")
 
         stored = 0
@@ -58,11 +58,11 @@ class ThreatService:
         print(f"Enrichment           : {enrich_time:.2f} sec")
 
         print(f"MongoDB Upserts      : {mongo_time:.2f} sec")
-    
+
         print("-" * 70)
         print(f"TOTAL                : {time.perf_counter() - total_start:.2f} sec")
         print("=" * 70)
-    
+
         return {
             "status": "SUCCESS",
             "collector": "nvd",

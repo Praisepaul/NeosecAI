@@ -43,7 +43,7 @@ class ThreatMerger:
 
         self._merge_cwes(threat, nvd, github)
 
-        self._merge_metadata(threat, epss)
+        self._merge_metadata(threat, nvd, epss)
 
         self._cleanup(threat)
 
@@ -301,11 +301,13 @@ class ThreatMerger:
     # STEP 8
     # ==========================================================
 
-    def _merge_metadata(self, threat, epss):
+    def _merge_metadata(self, threat, nvd, epss):
 
         if epss:
-
             threat["epss"] = deepcopy(epss)
+
+        elif nvd and nvd.get("epss"):
+            threat["epss"] = deepcopy(nvd["epss"])
 
     # ==========================================================
     # STEP 9

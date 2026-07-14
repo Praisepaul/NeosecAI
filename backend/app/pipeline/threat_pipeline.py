@@ -1,5 +1,5 @@
 import time
-
+from concurrent.futures import ThreadPoolExecutor
 from app.jobs.job_manager import job_manager
 from app.normalizers.nvd_normalizer import normalizer as nvd_normalizer
 from app.merger.threat_merger import merger
@@ -41,7 +41,7 @@ class ThreatPipeline:
 
         #
         # -------------------------------------------------------------
-        # STEP 3 - Collect GitHub Advisories
+        # STEP 3 - Collect Intelligence (Parallel)
         # -------------------------------------------------------------
         #
 
@@ -49,9 +49,21 @@ class ThreatPipeline:
 
         start = time.perf_counter()
 
-        github_data = github_connector.collect(cves)        
+        with ThreadPoolExecutor(max_workers=3) as executor:
+        
+            github_future = executor.submit(github_connector.collect, cves)
 
-        timings["github_collection"] = time.perf_counter() - start
+            cisa_future = executor.submit(cisa_connector.collect, cves)
+
+            epss_future = executor.submit(epss_connector.collect, cves)
+
+            github_data = github_future.result()
+
+            cisa_data = cisa_future.result()
+
+            epss_data = epss_future.result()
+
+        timings["intelligence_collection"] = time.perf_counter() - start
 
         #
         # -------------------------------------------------------------
@@ -67,11 +79,15 @@ class ThreatPipeline:
 
             github = github_data.get(nvd["cve"])
 
+            cisa = cisa_data.get(nvd["cve"])
+            
+            epss = epss_data.get(nvd["cve"])
+            
             threat = merger.merge(
                 nvd=nvd,
                 github=github,
-                cisa=None,
-                epss=None
+                cisa=cisa,
+                epss=epss
             )
 
             merged_threats.append(threat)
