@@ -1,12 +1,8 @@
 import time
-
-from app.jobs.job_manager import job_manager
-from app.normalizers.nvd_normalizer import normalizer
+from app.pipeline.threat_pipeline import pipeline
 from app.enrichers.enrichment_engine import engine
 from app.repositories.threat_repository import threat_repository
-from app.collectors.github_collector import collector as github_collector
-from app.normalizers.github_normalizer import normalizer as github_normalizer
-from app.merger.threat_merger import merger
+
 
 class ThreatService:
 
@@ -21,31 +17,18 @@ class ThreatService:
         print("Threat Synchronization Started")
         print("=" * 70)
 
-        #
-        # Collector
-        #
+        pipeline_result = pipeline.run()
 
-        start = time.perf_counter()
+        job = pipeline_result["job"]
 
-        job = job_manager.run("nvd")
+        threats = pipeline_result["threats"]
 
-        print(f"Job Manager          : {time.perf_counter() - start:.2f} sec")
+        timings = pipeline_result["timings"]
 
-        raw = job["raw"]
-
-        #
-        # Normalize
-        #
-
-        start = time.perf_counter()
-
-        findings = normalizer.normalize(raw)
-
-        cves = [finding["cve"] for finding in findings]
-
-        github_data = github_collector.collect(cves)
-
-        print(f"GitHub Collection        : {time.perf_counter() - start:.2f} sec")
+        print(f"Collector Download : {timings['collector']:.2f} sec")
+        print(f"NVD Normalize      : {timings['nvd_normalization']:.2f} sec")
+        print(f"GitHub Collection  : {timings['github_collection']:.2f} sec")
+        print(f"Threat Merge       : {timings['merge']:.2f} sec")
 
         stored = 0
 
@@ -55,25 +38,10 @@ class ThreatService:
 
         enrich_time = 0
         mongo_time = 0
-        merge_time = 0
 
-        for nvd_finding in findings:
+        for threat in threats:
+
             t = time.perf_counter()
-
-            github = github_data.get(nvd_finding["cve"])
-
-            github_normalized = None
-
-            if github:
-                github_normalized = github_normalizer.normalize(github)
-
-            threat = merger.merge(
-            nvd=nvd_finding,
-            github=github_normalized,
-            cisa=None,
-            epss=None
-        )
-            merge_time += time.perf_counter() - t
 
             enriched = engine.enrich(threat)
 
@@ -88,12 +56,13 @@ class ThreatService:
             stored += 1
 
         print(f"Enrichment           : {enrich_time:.2f} sec")
+
         print(f"MongoDB Upserts      : {mongo_time:.2f} sec")
-        print(f"Threat Merge         : {merge_time:.2f} sec")
+    
         print("-" * 70)
         print(f"TOTAL                : {time.perf_counter() - total_start:.2f} sec")
         print("=" * 70)
-
+    
         return {
             "status": "SUCCESS",
             "collector": "nvd",
