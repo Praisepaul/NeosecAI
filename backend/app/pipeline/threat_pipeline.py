@@ -57,11 +57,11 @@ class ThreatPipeline:
 
             epss_future = executor.submit(epss_connector.collect, cves)
 
-            github_data = github_future.result()
+            github_data = github_future.result() or {}
 
-            cisa_data = cisa_future.result()
+            cisa_data = cisa_future.result() or {}
 
-            epss_data = epss_future.result()
+            epss_data = epss_future.result() or {}
 
         timings["intelligence_collection"] = time.perf_counter() - start
 

@@ -1,0 +1,31 @@
+def create_asset(
+    hostname,
+    operating_system,
+    vendor,
+    products,
+    packages=None,
+    repositories=None,
+    cloud=None,
+    criticality="MEDIUM",
+    internet_facing=False,
+    environment="production",
+    owner=None,
+    tags=None,
+):
+
+    return {
+        "hostname": hostname,
+        "operating_system": operating_system,
+        "vendor": vendor.lower(),
+        "products": [p.lower() for p in products],
+        "packages": [p.lower() for p in (packages or [])],
+        "repositories": [r.lower() for r in (repositories or [])],
+        "cloud": cloud,
+        "criticality": criticality.upper(),
+        "internet_facing": internet_facing,
+        "environment": environment,
+        "owner": owner,
+        "tags": tags or [],
+        "last_seen": None,
+        "source": "manual",
+    }

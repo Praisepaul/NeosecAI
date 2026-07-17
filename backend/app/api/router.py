@@ -2,8 +2,10 @@ from fastapi import APIRouter
 
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.threat import router as threat_router
+from app.api.routes.assets import router as asset_router
 
 api_router = APIRouter(prefix="/api")
 
 api_router.include_router(dashboard_router)
 api_router.include_router(threat_router)
+api_router.include_router(asset_router)

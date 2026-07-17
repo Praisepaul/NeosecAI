@@ -2,7 +2,7 @@ import time
 from app.pipeline.threat_pipeline import pipeline
 from app.enrichers.enrichment_engine import engine
 from app.repositories.threat_repository import threat_repository
-
+from app.assets.asset_matcher import asset_matcher
 
 class ThreatService:
 
@@ -42,6 +42,8 @@ class ThreatService:
         for threat in threats:
 
             t = time.perf_counter()
+
+            threat = asset_matcher.match(threat)
 
             enriched = engine.enrich(threat)
 

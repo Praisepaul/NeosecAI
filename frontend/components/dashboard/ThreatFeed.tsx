@@ -1,30 +1,63 @@
-import { getRelevantThreats } from "@/lib/threatEngine";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
-export default function ThreatFeed() {
-  const threats = getRelevantThreats();
+import { RecentThreat } from "@/types/dashboard";
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Relevant Threats</CardTitle>
-      </CardHeader>
+interface Props {
+    threats: RecentThreat[];
+}
 
-      <CardContent className="space-y-4">
-        {threats.map((threat) => (
-          <div key={threat.id} className="border-b pb-3">
-            <div className="font-semibold">{threat.title}</div>
+export default function ThreatFeed({
+    threats,
+}: Props) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Recent Threats</CardTitle>
+            </CardHeader>
 
-            <div className="text-sm text-gray-500">
-              {threat.cve} • {threat.severity}
-            </div>
+            <CardContent className="space-y-4">
 
-            <div className="text-sm">
-              {threat.affectedProducts.join(", ")}
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
+                {threats.map((threat) => (
+                    <div
+                        key={threat.cve}
+                        className="border-b pb-4 last:border-0"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+
+                            <div className="min-w-0">
+
+                                <div className="font-semibold">
+                                    {threat.cve}
+                                </div>
+
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                    {threat.title}
+                                </div>
+
+                            </div>
+
+                            <div className="shrink-0 text-right">
+
+                                <div className="text-sm font-semibold">
+                                    Risk {threat.risk_score}
+                                </div>
+
+                                <div className="text-xs text-muted-foreground">
+                                    CVSS {threat.cvss.score}
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                ))}
+
+            </CardContent>
+        </Card>
+    );
 }

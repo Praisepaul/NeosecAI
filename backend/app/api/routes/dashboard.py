@@ -1,12 +1,11 @@
 from fastapi import APIRouter
 
+from app.services.dashboard_service import dashboard_service
+
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
-@router.get("/")
-async def dashboard():
 
-    return {
-        "securityScore":82,
-        "criticalAlerts":3,
-        "openIncidents":7
-    }
+@router.get("/")
+def dashboard():
+
+    return dashboard_service.get_dashboard()
