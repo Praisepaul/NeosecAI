@@ -1,3 +1,4 @@
+
 export interface DashboardSummary {
     total_threats: number;
     critical: number;
@@ -22,22 +23,9 @@ export interface TopVendor {
     count: number;
 }
 
-export interface RecentThreat {
-    cve: string;
-    cvss: {
-        version: string;
-        severity: string;
-        score: number;
-        vector: string;
-    };
-    published: string;
-    risk_score: number;
-    title: string;
-}
 
 export interface DashboardResponse {
     summary: DashboardSummary;
     severity_distribution: SeverityDistribution;
     top_vendors: TopVendor[];
-    recent_threats: RecentThreat[];
 }

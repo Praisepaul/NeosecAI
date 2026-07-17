@@ -8,7 +8,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r min-h-screen">
+    <aside className="w-54 min-w-54 shrink-0 border-r min-h-screen">
       <div className="text-2xl font-bold p-6">NeoSOC AI</div>
 
       <nav className="px-3 space-y-1">

@@ -1,40 +1,57 @@
+import { Badge } from "@/components/ui/badge";
+
+
 interface Props {
-    severity: string;
+
+    severity: string | null;
+
 }
+
 
 export default function SeverityBadge({
     severity,
 }: Props) {
 
-    const normalized =
-        severity.toUpperCase();
+    const value =
+        severity?.toUpperCase() || "UNKNOWN";
 
-    const styles: Record<string, string> = {
+
+    const styles: Record<
+        string,
+        string
+    > = {
 
         CRITICAL:
-            "bg-red-100 text-red-700",
+            "bg-red-600 text-white",
 
         HIGH:
-            "bg-orange-100 text-orange-700",
+            "bg-orange-500 text-white",
 
         MEDIUM:
-            "bg-yellow-100 text-yellow-700",
+            "bg-yellow-500 text-black",
 
         LOW:
-            "bg-green-100 text-green-700",
+            "bg-green-600 text-white",
+
+        UNKNOWN:
+            "bg-muted text-muted-foreground",
 
     };
 
+
     return (
 
-        <span
-            className={`rounded px-2 py-1 text-xs font-semibold ${
-                styles[normalized] ||
-                "bg-gray-100 text-gray-700"
-            }`}
+        <Badge
+            className={
+                styles[value] ||
+                styles.UNKNOWN
+            }
         >
-            {normalized}
-        </span>
+
+            {value}
+
+        </Badge>
 
     );
+
 }

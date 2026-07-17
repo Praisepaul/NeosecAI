@@ -1,42 +1,67 @@
 export interface CVSS {
-    version: string;
-    severity: string;
-    score: number;
-    vector: string;
+
+    version: string | null;
+
+    severity: string | null;
+
+    score: number | null;
+
+    vector: string | null;
+
 }
+
 
 export interface EPSS {
+
     score: number;
+
     percentile: number;
+
 }
+
 
 export interface Technology {
+
     vendors: string[];
+
     products: string[];
+
     packages: string[];
+
     repositories: string[];
+
     ecosystems: string[];
+
     versions: string[];
+
 }
+
 
 export interface ThreatMetadata {
+
     matched: boolean;
+
     matched_assets: string[];
+
     exploit_available: boolean;
+
     last_synced: string | null;
+
 }
 
-export interface ThreatSources {
-    nvd: unknown | null;
-    github: unknown | null;
-    cisa: unknown | null;
-    epss: EPSS | null;
+
+export interface ThreatSource {
+
+    [key: string]: any;
+
 }
+
 
 export interface Threat {
+
     cve: string;
 
-    title: string;
+    title: string | null;
 
     summary: string | null;
 
@@ -52,13 +77,15 @@ export interface Threat {
 
     kev: boolean;
 
-    kev_details: unknown | null;
+    kev_details: any;
 
     risk_score: number;
 
+    references: string[];
+
     cwes: string[];
 
-    references: string[];
+    technology: Technology;
 
     matched: boolean;
 
@@ -66,7 +93,16 @@ export interface Threat {
 
     metadata: ThreatMetadata;
 
-    technology: Technology;
+    sources: {
 
-    sources: ThreatSources;
+        nvd: ThreatSource | null;
+
+        github: ThreatSource | null;
+
+        cisa: ThreatSource | null;
+
+        epss: ThreatSource | null;
+
+    };
+
 }

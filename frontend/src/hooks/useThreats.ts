@@ -1,18 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Threat } from "@/types/threat";
-import { getThreats } from "@/services/threatService";
+
+import {
+    useEffect,
+    useState,
+} from "react";
+
+
+import {
+    getThreats,
+} from "@/services/threatService";
+
+
+import {
+    Threat,
+} from "@/types/threat";
+
 
 export function useThreats() {
 
-    const [threats, setThreats] = useState<Threat[]>([]);
+    const [
+        threats,
+        setThreats,
+    ] = useState<Threat[]>([]);
 
-    const [loading, setLoading] =
-        useState(true);
 
-    const [error, setError] =
-        useState<string | null>(null);
+    const [
+        loading,
+        setLoading,
+    ] = useState(true);
+
+
+    const [
+        error,
+        setError,
+    ] = useState<string | null>(null);
+
 
     useEffect(() => {
 
@@ -22,10 +45,13 @@ export function useThreats() {
 
                 setLoading(true);
 
+
                 const data =
                     await getThreats();
 
+
                 setThreats(data);
+
 
             } catch (err) {
 
@@ -35,6 +61,7 @@ export function useThreats() {
                         : "Failed to load threats"
                 );
 
+
             } finally {
 
                 setLoading(false);
@@ -43,13 +70,20 @@ export function useThreats() {
 
         }
 
+
         loadThreats();
 
     }, []);
 
+
     return {
+
         threats,
+
         loading,
+
         error,
+
     };
+
 }
