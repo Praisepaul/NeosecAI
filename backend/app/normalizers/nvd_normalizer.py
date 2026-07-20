@@ -1,11 +1,24 @@
+from copy import deepcopy
+
 from app.normalizers.base_normalizer import BaseNormalizer
 
 
 class NVDNormalizer(BaseNormalizer):
 
+    REJECTED_MARKERS = (
+        "rejected or withdrawn",
+        "this cve id has been rejected",
+        "this cve has been rejected",
+        "rejected reason:",
+    )
+
+    # ==========================================================
+    # CVSS
+    # ==========================================================
+
     def extract_cvss(self, cve):
 
-        metrics = cve.get("metrics", {})
+        metrics = cve.get("metrics") or {}
 
         versions = [
             "cvssMetricV40",
@@ -21,15 +34,17 @@ class NVDNormalizer(BaseNormalizer):
             if not metric_list:
                 continue
 
-            metric = metric_list[0]
+            metric = metric_list[0] or {}
 
-            data = metric.get("cvssData", {})
+            data = metric.get("cvssData") or {}
 
             return {
                 "version": version.replace("cvssMetric", ""),
-                "severity": data.get("baseSeverity")
-                or metric.get("baseSeverity")
-                or "UNKNOWN",
+                "severity": (
+                    data.get("baseSeverity")
+                    or metric.get("baseSeverity")
+                    or "UNKNOWN"
+                ),
                 "score": data.get("baseScore"),
                 "vector": data.get("vectorString"),
             }
@@ -41,146 +56,252 @@ class NVDNormalizer(BaseNormalizer):
             "vector": None,
         }
 
+    # ==========================================================
+    # DESCRIPTION
+    # ==========================================================
+
+    def extract_description(self, cve):
+
+        descriptions = cve.get("descriptions") or []
+
+        for description in descriptions:
+
+            if (
+                isinstance(description, dict)
+                and description.get("lang") == "en"
+            ):
+
+                value = description.get("value")
+
+                if isinstance(value, str):
+
+                    return value.strip()
+
+        return None
+
+    # ==========================================================
+    # REJECTED / WITHDRAWN CVE DETECTION
+    # ==========================================================
+
+    def is_rejected(self, cve):
+
+        description = self.extract_description(cve)
+
+        if not description:
+
+            return False
+
+        normalized = description.lower().strip()
+
+        return any(
+            marker in normalized
+            for marker in self.REJECTED_MARKERS
+        )
+
+    # ==========================================================
+    # TECHNOLOGY EXTRACTION
+    # ==========================================================
+
     def extract_technology(self, cve):
 
         vendors = set()
         products = set()
         packages = set()
         repositories = set()
-        versions = []
+        versions = set()
 
         #
-        # 1. affected
+        # Legacy affected structure
         #
 
-        for affected in cve.get("affected", []):
+        for affected in cve.get("affected", []) or []:
 
-            for item in affected.get("affectedData", []):
+            if not isinstance(affected, dict):
+                continue
+
+            for item in affected.get("affectedData", []) or []:
+
+                if not isinstance(item, dict):
+                    continue
 
                 vendor = item.get("vendor")
                 product = item.get("product")
                 package = item.get("packageName")
-                repo = item.get("repo")
+                repository = item.get("repo")
 
                 if vendor:
-                    vendors.add(vendor.lower())
+                    vendors.add(str(vendor).strip().lower())
 
                 if product:
-                    products.add(product.lower())
+                    products.add(str(product).strip().lower())
 
                 if package:
-                    packages.add(package.lower())
+                    packages.add(str(package).strip().lower())
 
-                if repo:
-                    repositories.add(repo)
+                if repository:
+                    repositories.add(str(repository).strip())
 
-                for version in item.get("versions", []):
+                for version in item.get("versions", []) or []:
 
-                    version_text = version.get("version", "")
+                    if not isinstance(version, dict):
+                        continue
+
+                    version_text = version.get("version")
+
+                    if not version_text:
+                        continue
+
+                    version_text = str(version_text)
 
                     if version.get("lessThan"):
 
-                        version_text += f" < {version['lessThan']}"
+                        version_text += (
+                            f" < {version['lessThan']}"
+                        )
 
                     elif version.get("lessThanOrEqual"):
 
-                        version_text += f" <= {version['lessThanOrEqual']}"
+                        version_text += (
+                            f" <= {version['lessThanOrEqual']}"
+                        )
 
-                    versions.append(version_text)
+                    versions.add(version_text)
 
         #
-        # 2. configurations (CPE)
+        # Modern NVD CPE configuration structure
         #
 
-        for configuration in cve.get("configurations", []):
+        for configuration in cve.get("configurations", []) or []:
 
-            for node in configuration.get("nodes", []):
+            if not isinstance(configuration, dict):
+                continue
 
-                for match in node.get("cpeMatch", []):
+            for node in configuration.get("nodes", []) or []:
 
-                    criteria = match.get("criteria", "")
+                if not isinstance(node, dict):
+                    continue
+
+                for match in node.get("cpeMatch", []) or []:
+
+                    if not isinstance(match, dict):
+                        continue
+
+                    criteria = match.get("criteria")
+
+                    if not criteria:
+                        continue
 
                     parts = criteria.split(":")
 
-                    if len(parts) > 4:
+                    # cpe:2.3:a:vendor:product:version...
+                    if (
+                        len(parts) >= 5
+                        and parts[0] == "cpe"
+                        and parts[1] == "2.3"
+                    ):
 
-                        vendors.add(parts[3].lower())
-                        products.add(parts[4].lower())
+                        vendor = parts[3]
+                        product = parts[4]
+                        version = parts[5] if len(parts) > 5 else None
+
+                        if vendor and vendor != "*":
+                            vendors.add(vendor.lower())
+
+                        if product and product != "*":
+                            products.add(product.lower())
+
+                        if version and version != "*":
+                            versions.add(version)
 
         return {
-
             "vendors": sorted(vendors),
-
             "products": sorted(products),
-
             "packages": sorted(packages),
-
             "repositories": sorted(repositories),
-
-            "versions": versions,
-
+            "ecosystems": [],
+            "versions": sorted(versions),
         }
+
+    # ==========================================================
+    # CWE EXTRACTION
+    # ==========================================================
+
+    def extract_cwes(self, cve):
+
+        cwes = set()
+
+        for weakness in cve.get("weaknesses", []) or []:
+
+            if not isinstance(weakness, dict):
+                continue
+
+            for description in weakness.get("description", []) or []:
+
+                if not isinstance(description, dict):
+                    continue
+
+                value = description.get("value")
+
+                if value:
+                    cwes.add(value)
+
+        return sorted(cwes)
+
+    # ==========================================================
+    # NORMALIZATION
+    # ==========================================================
 
     def normalize(self, raw):
 
         findings = []
 
-        for item in raw.get("vulnerabilities", []):
+        vulnerabilities = raw.get("vulnerabilities", []) or []
 
-            cve = item["cve"]
+        for item in vulnerabilities:
 
-            cvss = self.extract_cvss(cve)
+            if not isinstance(item, dict):
+                continue
 
-            technology = self.extract_technology(cve)
+            cve = item.get("cve") or {}
 
-            description = ""
+            cve_id = cve.get("id")
 
-            for desc in cve.get("descriptions", []):
+            if not cve_id:
+                continue
 
-                if desc.get("lang") == "en":
+            #
+            # Do not store rejected/withdrawn CVEs
+            #
 
-                    description = desc.get("value", "")
+            if self.is_rejected(cve):
 
-                    break
+                print(
+                    f"[NVD] Skipping rejected/withdrawn CVE: {cve_id}"
+                )
+
+                continue
+
+            description = self.extract_description(cve)
 
             finding = {
-
-                "cve": cve.get("id"),
-
-                "title": description[:100] if description else cve.get("id"),
-
-                "summary": description,
-
+                # Canonical identity
+                "cve": cve_id,
+                "title": description,
+                "description": description,
                 "published": cve.get("published"),
-
                 "modified": cve.get("lastModified"),
-
-                "cvss": cvss,
-
-                "technology": technology,
-
-                "matched": False,
-
-                "matched_assets": [],
-
-                "risk_score": 0,
-
-                "kev": False,
-
-                "epss": None,
-
-                "exploit_available": False,
-
+                "cvss": self.extract_cvss(cve),
+                "technology": self.extract_technology(cve),
+                "cwes": self.extract_cwes(cve),
                 "references": [
-                    ref.get("url")
-                    for ref in cve.get("references", [])
-                    if ref.get("url")
+                    reference.get("url")
+                    for reference in cve.get("references", []) or []
+                    if isinstance(reference, dict) and reference.get("url")
                 ],
-
+                # Source-specific information
                 "source": ["NVD"],
-
-                "last_synced": None,
-
+                # Preserve the complete original NVD CVE object
+                "raw": deepcopy(cve),
             }
 
             findings.append(finding)

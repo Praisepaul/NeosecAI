@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from app.normalizers.base_normalizer import BaseNormalizer
 
 
@@ -8,58 +10,89 @@ class GitHubNormalizer(BaseNormalizer):
         if not advisories:
             return None
 
-        advisory = advisories[0]
+        # GitHub collector currently returns one advisory as a dictionary
+        if isinstance(advisories, dict):
 
-        cvss = advisory.get("cvss") or {}
+            advisory = advisories
 
-        vulnerabilities = advisory.get("vulnerabilities") or []
+        # Support a list of advisories as well
+        elif isinstance(advisories, list):
+
+            if not advisories:
+                return None
+
+            advisory = advisories[0]
+
+        else:
+
+            return None
+
+        if not isinstance(advisory, dict):
+            return None
+
+        #
+        # CVE
+        #
+
+        cve = advisory.get("cve_id")
+
+        if not cve:
+            return None
+
+        #
+        # CVSS
+        #
+
+        cvss_data = advisory.get("cvss")
+
+        if not isinstance(cvss_data, dict):
+            cvss_data = {}
+
+        score = cvss_data.get("score")
+
+        vector = cvss_data.get("vector_string") or cvss_data.get("vector")
+
+        #
+        # Vulnerabilities / Packages
+        #
 
         packages = []
         ecosystems = []
         patched_versions = []
 
-        #
-        # Vulnerabilities
-        #
+        vulnerabilities = advisory.get("vulnerabilities") or []
 
-        for vuln in vulnerabilities:
+        for vulnerability in vulnerabilities:
 
-            if not isinstance(vuln, dict):
+            if not isinstance(vulnerability, dict):
                 continue
 
-            #
-            # Package
-            #
-
-            package = vuln.get("package")
+            package = vulnerability.get("package")
 
             if isinstance(package, dict):
 
-                name = package.get("name")
+                package_name = package.get("name")
+
                 ecosystem = package.get("ecosystem")
 
-                if name:
-                    packages.append(name)
+                if package_name:
+                    packages.append(package_name)
 
                 if ecosystem:
                     ecosystems.append(ecosystem)
 
-            #
-            # First patched version
-            #
-
-            patched = vuln.get("first_patched_version")
-
-            identifier = None
+            patched = vulnerability.get("first_patched_version")
 
             if isinstance(patched, dict):
+
                 identifier = patched.get("identifier")
 
-            elif isinstance(patched, str):
-                identifier = patched
+                if identifier:
+                    patched_versions.append(identifier)
 
-            if identifier:
-                patched_versions.append(identifier)
+            elif isinstance(patched, str):
+
+                patched_versions.append(patched)
 
         #
         # CWEs
@@ -67,7 +100,7 @@ class GitHubNormalizer(BaseNormalizer):
 
         cwes = []
 
-        for cwe in advisory.get("cwes", []):
+        for cwe in advisory.get("cwes") or []:
 
             if isinstance(cwe, str):
 
@@ -86,60 +119,67 @@ class GitHubNormalizer(BaseNormalizer):
 
         references = []
 
-        for ref in advisory.get("references", []):
+        for reference in advisory.get("references") or []:
 
-            if isinstance(ref, str):
+            if isinstance(reference, str):
 
-                references.append(ref)
+                references.append(reference)
 
-            elif isinstance(ref, dict):
+            elif isinstance(reference, dict):
 
-                url = ref.get("url")
+                url = reference.get("url")
 
                 if url:
                     references.append(url)
 
         #
-        # CVSS
+        # Remove duplicates while preserving order
         #
 
-        score = None
-        vector = None
+        packages = list(dict.fromkeys(packages))
 
-        if isinstance(cvss, dict):
-            score = cvss.get("score")
-            vector = cvss.get("vector_string")
+        ecosystems = list(dict.fromkeys(ecosystems))
+
+        patched_versions = list(dict.fromkeys(patched_versions))
+
+        cwes = list(dict.fromkeys(cwes))
+
+        references = list(dict.fromkeys(references))
+
+        #
+        # Normalized GitHub intelligence
+        #
+        # Important:
+        # - title preserves GitHub's advisory summary
+        # - description preserves the full advisory description
+        # - raw preserves the complete original advisory
+        #
 
         return {
-
-            "published": advisory.get("published_at"),
-
-            "updated": advisory.get("updated_at"),
-
-            "severity": advisory.get("severity"),
-
-            "summary": advisory.get("summary"),
-
+            "cve": cve,
+            "title": advisory.get("summary"),
             "description": advisory.get("description"),
-
+            "published": advisory.get("published_at"),
+            "modified": advisory.get("updated_at"),
+            "severity": advisory.get("severity"),
             "cvss": {
-
                 "score": score,
-
-                "vector": vector
-
+                "vector": vector,
             },
-
-            "cwes": sorted(set(cwes)),
-
-            "references": sorted(set(references)),
-
-            "packages": sorted(set(packages)),
-
-            "ecosystems": sorted(set(ecosystems)),
-
-            "patched_versions": sorted(set(patched_versions))
-
+            "cwes": cwes,
+            "references": references,
+            "technology": {
+                "vendors": [],
+                "products": [],
+                "packages": packages,
+                "repositories": [],
+                "ecosystems": ecosystems,
+                "versions": patched_versions,
+            },
+            #
+            # Complete original GitHub Advisory
+            #
+            "raw": deepcopy(advisory),
         }
 
 

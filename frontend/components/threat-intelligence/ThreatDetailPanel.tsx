@@ -54,19 +54,14 @@ export default function ThreatDetailPanel({
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
                     <Card>
-                        <CardHeader>
-                            <CardTitle>
-                                {threat.title}
-                            </CardTitle>
-                        </CardHeader>
-
                         <CardContent className="space-y-3">
 
                             <div>
+                                <CardTitle>
                                 <p className="text-sm text-muted-foreground">
                                     Description
                                 </p>
-
+                                </CardTitle>
                                 <p className="text-sm">
                                     {threat.description ||
                                         "No description available."}

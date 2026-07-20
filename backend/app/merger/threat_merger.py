@@ -2,24 +2,6 @@ from copy import deepcopy
 
 
 class ThreatMerger:
-    """
-    Builds a single canonical threat document from multiple normalized sources.
-
-    Responsibilities:
-        1. Build base threat document
-        2. Preserve all source intelligence
-        3. Merge descriptive fields
-        4. Merge CVSS
-        5. Merge technologies
-        6. Merge references
-        7. Merge weaknesses (CWEs)
-        8. Prepare metadata
-        9. Cleanup and deduplicate
-    """
-
-    # ==========================================================
-    # PUBLIC ENTRY POINT
-    # ==========================================================
 
     def merge(
         self,
@@ -31,88 +13,73 @@ class ThreatMerger:
 
         threat = self._build_base_document()
 
-        self._store_sources(threat, nvd, github, cisa, epss)
+        self._store_sources(
+            threat,
+            nvd,
+            github,
+            cisa,
+            epss,
+        )
 
-        self._merge_descriptions(threat, nvd, github, cisa)
+        self._merge_identity(
+            threat,
+            nvd,
+            github,
+        )
 
-        self._merge_cvss(threat, nvd, github)
+        self._merge_content(
+            threat,
+            nvd,
+            github,
+        )
 
-        self._merge_technology(threat, nvd, github)
+        self._merge_dates(
+            threat,
+            nvd,
+            github,
+        )
 
-        self._merge_references(threat, nvd, github, cisa)
+        self._merge_cvss(
+            threat,
+            nvd,
+            github,
+        )
 
-        self._merge_cwes(threat, nvd, github)
+        self._merge_kev(
+            threat,
+            cisa,
+        )
 
-        self._merge_metadata(threat, nvd, epss)
+        self._merge_technology(
+            threat,
+            nvd,
+            github,
+        )
+
+        self._merge_references(
+            threat,
+            nvd,
+            github,
+            cisa,
+        )
+
+        self._merge_cwes(
+            threat,
+            nvd,
+            github,
+        )
+
+        self._merge_epss(
+            threat,
+            epss,
+        )
 
         self._cleanup(threat)
 
         return threat
 
     # ==========================================================
-
-    # HELPER FUNCTIONS
-    # ==========================================================
-
-    def _unique(self, values):
-        """
-        Removes duplicates while preserving order.
-        Ignores None and empty strings.
-        """
-        seen = set()
-        result = []
-
-        for value in values:
-
-            if value is None:
-                continue
-
-            if isinstance(value, str):
-                value = value.strip()
-
-                if not value:
-                    continue
-
-            key = str(value)
-
-            if key not in seen:
-                seen.add(key)
-                result.append(value)
-
-        return result
-
-    def _merge_lists(self, *lists):
-        """
-        Merge multiple lists into one unique list.
-        """
-
-        merged = []
-
-        for lst in lists:
-
-            if isinstance(lst, list):
-                merged.extend(lst)
-
-        return self._unique(merged)
-
-    def _merge_dict(self, primary, secondary):
-        """
-        Merge two dictionaries.
-        Primary values win.
-        Missing fields are copied from secondary.
-        """
-
-        result = deepcopy(primary or {})
-
-        for key, value in (secondary or {}).items():
-
-            if key not in result or result[key] in [None, "", [], {}]:
-                result[key] = deepcopy(value)
-
-        return result
-
-    # ==========================================================
-    # STEP 1
+    # BASE DOCUMENT
     # ==========================================================
 
     def _build_base_document(self):
@@ -120,12 +87,11 @@ class ThreatMerger:
         return {
             "cve": None,
             "title": None,
-            "summary": None,
             "description": None,
             "published": None,
             "modified": None,
             "cvss": {},
-            "epss": {},
+            "epss": None,
             "kev": False,
             "kev_details": None,
             "risk_score": 0,
@@ -139,7 +105,12 @@ class ThreatMerger:
                 "ecosystems": [],
                 "versions": [],
             },
-            "sources": {"nvd": None, "github": None, "cisa": None, "epss": None},
+            "sources": {
+                "nvd": None,
+                "github": None,
+                "cisa": None,
+                "epss": None,
+            },
             "metadata": {
                 "matched": False,
                 "matched_assets": [],
@@ -149,10 +120,17 @@ class ThreatMerger:
         }
 
     # ==========================================================
-    # STEP 2
+    # PRESERVE SOURCES
     # ==========================================================
 
-    def _store_sources(self, threat, nvd, github, cisa, epss):
+    def _store_sources(
+        self,
+        threat,
+        nvd,
+        github,
+        cisa,
+        epss,
+    ):
 
         threat["sources"]["nvd"] = deepcopy(nvd)
 
@@ -163,95 +141,166 @@ class ThreatMerger:
         threat["sources"]["epss"] = deepcopy(epss)
 
     # ==========================================================
-    # STEP 3
+    # IDENTITY
     # ==========================================================
 
-    def _merge_descriptions(self, threat, nvd, github, cisa):
+    def _merge_identity(
+        self,
+        threat,
+        nvd,
+        github,
+    ):
 
-        # Priority:
-        # Vendor -> GitHub -> NVD
-        # (Vendor support will come later)
-
-        primary = github or nvd or {}
-
-        threat["cve"] = (nvd or github or {}).get("cve")
-
-        threat["title"] = (nvd or github or {}).get("title")
-
-        threat["summary"] = primary.get("summary")
-
-        threat["description"] = primary.get("description")
-
-        threat["published"] = (nvd or github or {}).get("published")
-
-        threat["modified"] = (nvd or github or {}).get("modified")
+        threat["cve"] = (nvd or {}).get("cve") or (github or {}).get("cve")
 
     # ==========================================================
-    # STEP 4
+    # TITLE AND DESCRIPTION
     # ==========================================================
 
-    def _merge_cvss(self, threat, nvd, github):
+    def _merge_content(
+        self,
+        threat,
+        nvd,
+        github,
+    ):
 
-        if nvd and nvd.get("cvss"):
+        github_title = (github or {}).get("title")
 
-            threat["cvss"] = deepcopy(nvd["cvss"])
+        github_description = (github or {}).get("description")
 
-        elif github and github.get("cvss"):
+        nvd_description = (nvd or {}).get("description")
 
-            threat["cvss"] = deepcopy(github["cvss"])
+        #
+        # GitHub Advisory is the preferred
+        # human-readable source when available.
+        #
+
+        if github_title:
+            threat["title"] = github_title
+            threat["description"] = github_description or github_title
+            return
+
+        if nvd_description:
+            threat["title"] = nvd_description
+            threat["description"] = nvd_description
+            return
+
+        if github_description:
+            threat["title"] = github_description
+            threat["description"] = github_description
 
     # ==========================================================
-    # STEP 5
+    # DATES
+    # ==========================================================
+
+    def _merge_dates(
+        self,
+        threat,
+        nvd,
+        github,
+    ):
+
+        threat["published"] = (nvd or {}).get("published") or (github or {}).get(
+            "published"
+        )
+
+        threat["modified"] = (nvd or {}).get("modified") or (github or {}).get(
+            "modified"
+        )
+
+    # ==========================================================
+    # CVSS
+    # ==========================================================
+
+    def _merge_cvss(
+        self,
+        threat,
+        nvd,
+        github,
+    ):
+
+        nvd_cvss = (nvd or {}).get("cvss")
+
+        github_cvss = (github or {}).get("cvss")
+
+        if nvd_cvss:
+
+            threat["cvss"] = deepcopy(nvd_cvss)
+
+        elif github_cvss:
+
+            threat["cvss"] = deepcopy(github_cvss)
+
+    # ==========================================================
+    # CISA KEV
+    # ==========================================================
+
+    # ==========================================================
+# CISA KEV
+# ==========================================================
+
+
+    def _merge_kev(
+        self,
+        threat,
+        cisa,
+    ):
+    
+        if not cisa:
+        
+            return
+    
+        threat["kev"] = cisa.get(
+            "kev",
+            False,
+        )
+    
+        threat["kev_details"] = deepcopy(cisa.get("kev_details"))
+
+    # ==========================================================
+    # TECHNOLOGY
     # ==========================================================
 
     def _merge_technology(
         self,
         threat,
         nvd,
-        github
+        github,
     ):
 
-        nvd_tech = (nvd or {}).get("technology", {})
-        github_tech = (github or {}).get("technology", {})
+        nvd_technology = (nvd or {}).get("technology") or {}
 
-        technology = {
+        github_technology = (github or {}).get("technology") or {}
 
+        threat["technology"] = {
             "vendors": self._merge_lists(
-                nvd_tech.get("vendors"),
-                github_tech.get("vendors")
+                nvd_technology.get("vendors"),
+                github_technology.get("vendors"),
             ),
-
             "products": self._merge_lists(
-                nvd_tech.get("products"),
-                github_tech.get("products")
+                nvd_technology.get("products"),
+                github_technology.get("products"),
             ),
-
             "packages": self._merge_lists(
-                nvd_tech.get("packages"),
-                github_tech.get("packages")
+                nvd_technology.get("packages"),
+                github_technology.get("packages"),
             ),
-
             "repositories": self._merge_lists(
-                nvd_tech.get("repositories"),
-                github_tech.get("repositories")
+                nvd_technology.get("repositories"),
+                github_technology.get("repositories"),
             ),
-
             "ecosystems": self._merge_lists(
-                nvd_tech.get("ecosystems"),
-                github_tech.get("ecosystems")
+                nvd_technology.get("ecosystems"),
+                github_technology.get("ecosystems"),
             ),
-
             "versions": self._merge_lists(
-                nvd_tech.get("versions"),
-                github_tech.get("versions")
-            )
-
+                nvd_technology.get("versions"),
+                github_technology.get("versions"),
+            ),
         }
 
-        threat["technology"] = technology
-
     # ==========================================================
-    # STEP 6
+    # REFERENCES
     # ==========================================================
 
     def _merge_references(
@@ -259,79 +308,142 @@ class ThreatMerger:
         threat,
         nvd,
         github,
-        cisa
+        cisa,
     ):
 
-        references = self._merge_lists(
-
+        threat["references"] = self._merge_lists(
             (nvd or {}).get("references"),
-
             (github or {}).get("references"),
-
-            (cisa or {}).get("references")
-
+            (cisa or {}).get("references"),
         )
 
-        threat["references"] = sorted(references)
-
     # ==========================================================
-    # STEP 7
+    # CWEs
     # ==========================================================
 
     def _merge_cwes(
         self,
         threat,
         nvd,
-        github
+        github,
     ):
 
-        threat["cwes"] = sorted(
-
-            self._merge_lists(
-
-                (nvd or {}).get("cwes"),
-
-                (github or {}).get("cwes")
-
-            )
-
+        threat["cwes"] = self._merge_lists(
+            (nvd or {}).get("cwes"),
+            (github or {}).get("cwes"),
         )
 
     # ==========================================================
-    # STEP 8
+    # EPSS
     # ==========================================================
 
-    def _merge_metadata(self, threat, nvd, epss):
+    def _merge_epss(
+        self,
+        threat,
+        epss,
+    ):
 
         if epss:
+
             threat["epss"] = deepcopy(epss)
 
-        elif nvd and nvd.get("epss"):
-            threat["epss"] = deepcopy(nvd["epss"])
+    # ==========================================================
+    # HELPERS
+    # ==========================================================
+
+    def _merge_lists(
+        self,
+        *lists,
+    ):
+
+        values = []
+
+        for value_list in lists:
+
+            if not isinstance(
+                value_list,
+                list,
+            ):
+
+                continue
+
+            values.extend(value_list)
+
+        return self._unique(values)
+
+    def _unique(
+        self,
+        values,
+    ):
+
+        result = []
+
+        seen = set()
+
+        for value in values:
+
+            if value is None:
+
+                continue
+
+            if isinstance(
+                value,
+                str,
+            ):
+
+                value = value.strip()
+
+                if not value:
+
+                    continue
+
+            key = str(value)
+
+            if key in seen:
+
+                continue
+
+            seen.add(key)
+
+            result.append(value)
+
+        return result
 
     # ==========================================================
-    # STEP 9
+    # CLEANUP
     # ==========================================================
 
     def _cleanup(
         self,
-        threat
+        threat,
     ):
 
         threat["references"] = self._unique(
-            threat.get("references", [])
+            threat.get(
+                "references",
+                [],
+            )
         )
 
         threat["cwes"] = self._unique(
-            threat.get("cwes", [])
+            threat.get(
+                "cwes",
+                [],
+            )
         )
 
-        tech = threat.get("technology", {})
+        technology = threat.get(
+            "technology",
+            {},
+        )
 
-        for field in tech:
+        for field in technology:
 
-            tech[field] = self._unique(
-                tech.get(field, [])
+            technology[field] = self._unique(
+                technology.get(
+                    field,
+                    [],
+                )
             )
 
 

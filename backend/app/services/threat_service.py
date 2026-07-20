@@ -51,11 +51,12 @@ class ThreatService:
 
             t = time.perf_counter()
 
-            threat_repository.upsert(enriched)
+            result = threat_repository.upsert(enriched)
 
             mongo_time += time.perf_counter() - t
 
-            stored += 1
+            if result:
+                stored += 1
 
         print(f"Enrichment           : {enrich_time:.2f} sec")
 

@@ -1,11 +1,23 @@
 import time
+
 from concurrent.futures import ThreadPoolExecutor
+
 from app.jobs.job_manager import job_manager
+
 from app.normalizers.nvd_normalizer import normalizer as nvd_normalizer
+
+from app.normalizers.github_normalizer import normalizer as github_normalizer
+
+from app.normalizers.cisa_normalizer import normalizer as cisa_normalizer
+
 from app.merger.threat_merger import merger
+
 from app.pipeline.connectors.github_connector import github_connector
+
 from app.pipeline.connectors.cisa_connector import cisa_connector
+
 from app.pipeline.connectors.epss_connector import epss_connector
+
 
 class ThreatPipeline:
 
@@ -14,9 +26,8 @@ class ThreatPipeline:
         timings = {}
 
         #
-        # -------------------------------------------------------------
-        # STEP 1 - Download NVD Feed
-        # -------------------------------------------------------------
+        # STEP 1
+        # Download NVD
         #
 
         start = time.perf_counter()
@@ -28,9 +39,8 @@ class ThreatPipeline:
         raw = job["raw"]
 
         #
-        # -------------------------------------------------------------
-        # STEP 2 - Normalize NVD
-        # -------------------------------------------------------------
+        # STEP 2
+        # Normalize NVD
         #
 
         start = time.perf_counter()
@@ -40,9 +50,8 @@ class ThreatPipeline:
         timings["nvd_normalization"] = time.perf_counter() - start
 
         #
-        # -------------------------------------------------------------
-        # STEP 3 - Collect Intelligence (Parallel)
-        # -------------------------------------------------------------
+        # STEP 3
+        # Collect external intelligence
         #
 
         cves = [finding["cve"] for finding in nvd_findings]
@@ -50,25 +59,80 @@ class ThreatPipeline:
         start = time.perf_counter()
 
         with ThreadPoolExecutor(max_workers=3) as executor:
-        
-            github_future = executor.submit(github_connector.collect, cves)
 
-            cisa_future = executor.submit(cisa_connector.collect, cves)
+            github_future = executor.submit(
+                github_connector.collect,
+                cves,
+            )
 
-            epss_future = executor.submit(epss_connector.collect, cves)
+            cisa_future = executor.submit(
+                cisa_connector.collect,
+                cves,
+            )
+
+            epss_future = executor.submit(
+                epss_connector.collect,
+                cves,
+            )
 
             github_data = github_future.result() or {}
 
             cisa_data = cisa_future.result() or {}
+
+            #Temporary Debug Code
+
+            print(
+                f"[CISA] Loaded {len(cisa_data)} KEV vulnerabilities"
+            )
+
+            cisa_matches = [
+                cve
+                for cve in cves
+                if cve in cisa_data
+            ]
+
+            print(
+                f"[CISA] Matches in current NVD batch: {len(cisa_matches)}"
+            )
+
+            if cisa_matches:
+            
+                print(
+                    f"[CISA] Sample matches: {cisa_matches[:10]}"
+                )
 
             epss_data = epss_future.result() or {}
 
         timings["intelligence_collection"] = time.perf_counter() - start
 
         #
-        # -------------------------------------------------------------
-        # STEP 4 - Merge Threat Intelligence
-        # -------------------------------------------------------------
+        # STEP 4
+        # Normalize GitHub data
+        #
+
+        normalized_github = {}
+
+        for cve, advisories in github_data.items():
+
+            normalized = github_normalizer.normalize(advisories)
+
+            if normalized:
+
+                normalized_github[cve] = normalized
+
+        normalized_cisa = {}
+
+        for cve, vuln in cisa_data.items():
+
+            normalized = cisa_normalizer.normalize(vuln)
+
+            if normalized:
+
+                normalized_cisa[cve] = normalized
+
+        #
+        # STEP 5
+        # Merge
         #
 
         merged_threats = []
@@ -77,24 +141,24 @@ class ThreatPipeline:
 
         for nvd in nvd_findings:
 
-            github = github_data.get(nvd["cve"])
+            cve = nvd["cve"]
 
-            cisa = cisa_data.get(nvd["cve"])
-            
-            epss = epss_data.get(nvd["cve"])
-            
             threat = merger.merge(
                 nvd=nvd,
-                github=github,
-                cisa=cisa,
-                epss=epss
+                github=normalized_github.get(cve),
+                cisa=normalized_cisa.get(cve),
+                epss=epss_data.get(cve),
             )
 
             merged_threats.append(threat)
 
         timings["merge"] = time.perf_counter() - start
 
-        return {"job": job, "threats": merged_threats, "timings": timings}
+        return {
+            "job": job,
+            "threats": merged_threats,
+            "timings": timings,
+        }
 
 
 pipeline = ThreatPipeline()

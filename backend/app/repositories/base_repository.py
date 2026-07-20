@@ -1,6 +1,3 @@
-import time
-
-
 class BaseRepository:
 
     def __init__(self, collection):
@@ -18,19 +15,8 @@ class BaseRepository:
 
     def upsert(self, document, key="cve"):
 
-        start = time.perf_counter()
-
         self.collection.update_one(
             {key: document[key]},
             {"$set": document},
             upsert=True
         )
-
-        elapsed = time.perf_counter() - start
-
-        # Only print if the write is unusually slow
-        if elapsed > 0.05:
-            print(
-                f"[MongoDB] Slow upsert ({document.get(key)}): "
-                f"{elapsed:.3f} sec"
-            )
