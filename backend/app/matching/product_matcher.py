@@ -21,21 +21,17 @@ class ProductMatcher:
         matches = []
 
         normalized_products = [
-            p.lower()
-            for p in products
+            p.lower().strip() for p in products if isinstance(p, str)
         ]
 
         for technology in self.inventory:
 
-            aliases = [
-                a.lower()
-                for a in technology["aliases"]
-            ]
+            aliases = [a.lower().strip() for a in technology["aliases"]]
 
             if any(
-                alias in normalized_products
-                for alias in aliases
+                alias in product for alias in aliases for product in normalized_products
             ):
+
                 matches.append(technology)
 
         return matches

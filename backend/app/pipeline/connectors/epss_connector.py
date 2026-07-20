@@ -1,4 +1,5 @@
 import requests
+
 from app.config.settings import settings
 from app.utils.retry import retry
 
@@ -12,43 +13,55 @@ class EPSSConnector:
         if not cves:
             return {}
 
-        def fetch():
+        findings = {}
 
-            response = requests.get(
-                self.BASE_URL,
-                params={"cve": ",".join(cves)},
-                timeout=settings.http_timeout,
-            )
+        batch_size = 100
 
-            response.raise_for_status()
+        for i in range(0, len(cves), batch_size):
 
-            return response
+            batch = cves[i : i + batch_size]
 
-        try:
+            def fetch():
 
-            response = retry(fetch)
-            
-            if response is None:
-                return {}
-            
-            data = response.json().get("data", [])
+                response = requests.get(
+                    self.BASE_URL,
+                    params={"cve": ",".join(batch)},
+                    timeout=settings.http_timeout,
+                )
 
-            findings = {}
+                response.raise_for_status()
 
-            for item in data:
+                return response
 
-                findings[item["cve"]] = {
-                    "score": float(item["epss"]),
-                    "percentile": float(item["percentile"]),
-                }
+            try:
 
-            return findings
+                response = retry(fetch)
 
-        except Exception as ex:
+                if response is None:
+                    continue
 
-            print(f"[EPSS] Failed: {ex}")
+                data = response.json().get("data", [])
 
-            return {}
+                for item in data:
+
+                    findings[item["cve"]] = {
+                        "score": float(item["epss"]),
+                        "percentile": float(item["percentile"]),
+                    }
+
+                print(
+                    f"[EPSS] Processed "
+                    f"{min(i + batch_size, len(cves))}"
+                    f"/{len(cves)} CVEs"
+                )
+
+            except Exception as ex:
+
+                print(f"[EPSS] Batch failed: {ex}")
+
+        print(f"[EPSS] Successfully collected " f"{len(findings)} scores")
+
+        return findings
 
 
 epss_connector = EPSSConnector()

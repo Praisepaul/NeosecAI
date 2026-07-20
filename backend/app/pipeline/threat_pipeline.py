@@ -18,6 +18,7 @@ from app.pipeline.connectors.cisa_connector import cisa_connector
 
 from app.pipeline.connectors.epss_connector import epss_connector
 
+from app.matching.product_matcher import matcher
 
 class ThreatPipeline:
 
@@ -46,6 +47,34 @@ class ThreatPipeline:
         start = time.perf_counter()
 
         nvd_findings = nvd_normalizer.normalize(raw)
+
+        relevant_findings = []
+
+        for finding in nvd_findings:
+        
+            products = (
+                finding
+                .get("technology", {})
+                .get("products", [])
+            )
+        
+            matches = matcher.match(products)
+        
+            if matches:
+            
+                finding["matched_products"] = matches
+        
+                relevant_findings.append(finding)
+        
+        print(
+            f"[FILTER] NVD CVEs: {len(nvd_findings)}"
+        )
+        
+        print(
+            f"[FILTER] Relevant CVEs: {len(relevant_findings)}"
+        )
+        
+        nvd_findings = relevant_findings
 
         timings["nvd_normalization"] = time.perf_counter() - start
 

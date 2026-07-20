@@ -37,7 +37,8 @@
       "name": "AWS",
       "aliases": [
         "amazon",
-        "aws"
+        "aws",
+        "amazon web services"
       ],
       "criticality": 5,
       "internet_facing": true
@@ -46,7 +47,17 @@
       "name": "OCI",
       "aliases": [
         "oracle",
-        "oci"
+        "oci",
+        "oracle cloud"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "OCI HPC",
+      "aliases": [
+        "oci hpc",
+        "oracle cloud hpc"
       ],
       "criticality": 5,
       "internet_facing": true
@@ -72,9 +83,238 @@
       "name": "ArgoCD",
       "aliases": [
         "argocd",
-        "argo"
+        "argo cd"
       ],
       "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "NVIDIA",
+      "aliases": [
+        "nvidia",
+        "nvidia gpu",
+        "cuda"
+      ],
+      "criticality": 5,
+      "internet_facing": false
+    },
+    {
+      "name": "NVIDIA GB200",
+      "aliases": [
+        "gb200",
+        "grace blackwell",
+        "blackwell"
+      ],
+      "criticality": 5,
+      "internet_facing": false
+    },
+    {
+      "name": "Ubuntu",
+      "aliases": [
+        "ubuntu",
+        "ubuntu linux"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "Microsoft Windows 11",
+      "aliases": [
+        "windows 11",
+        "windows 11 22h2",
+        "windows 11 24h2"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "Git",
+      "aliases": [
+        "git"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "GitHub",
+      "aliases": [
+        "github",
+        "github enterprise"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "MongoDB",
+      "aliases": [
+        "mongodb",
+        "mongo db"
+      ],
+      "criticality": 5,
+      "internet_facing": false
+    },
+    {
+      "name": "Python",
+      "aliases": [
+        "python",
+        "python programming language"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "JavaScript",
+      "aliases": [
+        "javascript",
+        "ecmascript"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "TypeScript",
+      "aliases": [
+        "typescript"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "React",
+      "aliases": [
+        "react",
+        "react.js",
+        "reactjs"
+      ],
+      "criticality": 4,
+      "internet_facing": true
+    },
+    {
+      "name": "Node.js",
+      "aliases": [
+        "node.js",
+        "nodejs",
+        "node"
+      ],
+      "criticality": 4,
+      "internet_facing": true
+    },
+    {
+      "name": "Microsoft Office",
+      "aliases": [
+        "microsoft office",
+        "office",
+        "word",
+        "excel",
+        "powerpoint"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "Fortinet",
+      "aliases": [
+        "fortinet",
+        "fortigate",
+        "fortisandbox",
+        "fortimanager",
+        "fortianalyzer"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "Terraform",
+      "aliases": [
+        "terraform",
+        "hashicorp terraform"
+      ],
+      "criticality": 4,
+      "internet_facing": false
+    },
+    {
+      "name": "OAuth",
+      "aliases": [
+        "oauth",
+        "oauth 2.0",
+        "oauth2"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "JWT",
+      "aliases": [
+        "jwt",
+        "json web token",
+        "json web tokens"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "OpenID Connect",
+      "aliases": [
+        "openid connect",
+        "oidc"
+      ],
+      "criticality": 5,
+      "internet_facing": true
+    },
+    {
+      "name": "Gmail",
+      "aliases": [
+        "gmail"
+      ],
+      "criticality": 4,
+      "internet_facing": true
+    },
+    {
+      "name": "Google Sheets",
+      "aliases": [
+        "google sheets",
+        "sheets"
+      ],
+      "criticality": 3,
+      "internet_facing": true
+    },
+    {
+      "name": "Google Docs",
+      "aliases": [
+        "google docs",
+        "docs"
+      ],
+      "criticality": 3,
+      "internet_facing": true
+    },
+    {
+      "name": "Google Slides",
+      "aliases": [
+        "google slides",
+        "slides"
+      ],
+      "criticality": 3,
+      "internet_facing": true
+    },
+    {
+      "name": "Looker",
+      "aliases": [
+        "looker",
+        "google looker",
+        "data studio",
+        "looker studio"
+      ],
+      "criticality": 4,
+      "internet_facing": true
+    },
+    {
+      "name": "Dell",
+      "aliases": [
+        "dell",
+        "dell emc",
+        "poweredge"
+      ],
+      "criticality": 5,
       "internet_facing": false
     }
   ]
