@@ -19,12 +19,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { Threat } from "@/types/threat";
+import { ThreatSummary } from "@/types/threat";
 
 interface Props {
-  threats: Threat[];
+  threats: ThreatSummary[];
 
-  onSelect: (threat: Threat) => void;
+  onSelect: (threat: ThreatSummary) => void;
 
   sortColumn: string;
 

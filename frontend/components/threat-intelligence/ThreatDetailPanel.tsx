@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { Threat } from "@/types/threat";
+import RawJsonViewer from "./RawJsonViewer";
 
 interface Props {
   threat: Threat;
@@ -36,7 +37,7 @@ export default function ThreatDetailPanel({ threat, onClose }: Props) {
     return `${(value * 100).toFixed(3)}%`;
   };
 
-  const getSeverityClass = (severity?: string) => {
+  const getSeverityClass = (severity?: string | null) => {
     switch (severity?.toUpperCase()) {
       case "CRITICAL":
         return "text-red-600";
@@ -135,26 +136,64 @@ export default function ThreatDetailPanel({ threat, onClose }: Props) {
                   <div className="space-y-2">
                     {threat.matched_assets.map((asset, index) => (
                       <div
-                        key={`${asset.name}-${index}`}
+                        key={`${asset.hostname}-${index}`}
                         className="rounded-lg border p-3"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium">{asset.name}</span>
+                          <span className="font-medium">{asset.hostname}</span>
 
                           <span className="text-sm text-muted-foreground">
-                            Criticality: {asset.criticality}/5
+                            Criticality: {asset.criticality}
                           </span>
                         </div>
 
-                        {asset.aliases?.length ? (
+                        {asset.matched_on?.length ? (
                           <p className="mt-1 text-xs text-muted-foreground">
-                            Aliases: {asset.aliases.join(", ")}
+                            Matched on: {asset.matched_on.join(", ")}
                           </p>
                         ) : null}
 
                         <p className="mt-1 text-xs text-muted-foreground">
                           Internet-facing:{" "}
                           {asset.internet_facing ? "Yes" : "No"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {threat.matched_products?.length ? (
+                <div>
+                  <p className="mb-2 text-sm text-muted-foreground">
+                    Matched Products (technology inventory)
+                  </p>
+
+                  <div className="space-y-2">
+                    {threat.matched_products.map((product, index) => (
+                      <div
+                        key={`${product.name}-${index}`}
+                        className="rounded-lg border p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{product.name}</span>
+
+                          {product.criticality !== undefined ? (
+                            <span className="text-sm text-muted-foreground">
+                              Criticality: {product.criticality}/5
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {product.aliases?.length ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Aliases: {product.aliases.join(", ")}
+                          </p>
+                        ) : null}
+
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Internet-facing:{" "}
+                          {product.internet_facing ? "Yes" : "No"}
                         </p>
                       </div>
                     ))}
@@ -320,9 +359,9 @@ export default function ThreatDetailPanel({ threat, onClose }: Props) {
             <CardContent>
               {threat.cwes?.length ? (
                 <div className="flex flex-wrap gap-2">
-                  {threat.cwes.map((cwe) => (
+                  {threat.cwes.map((cwe, index) => (
                     <span
-                      key={cwe}
+                      key={`${cwe}-${index}`}
                       className="rounded-md border px-2 py-1 text-sm"
                     >
                       {cwe}
@@ -349,9 +388,10 @@ export default function ThreatDetailPanel({ threat, onClose }: Props) {
 
               <CardContent className="space-y-3">
                 {threat.kev_details ? (
-                  <pre className="overflow-x-auto rounded bg-muted p-3 text-xs">
-                    {JSON.stringify(threat.kev_details, null, 2)}
-                  </pre>
+                  <RawJsonViewer
+                    data={threat.kev_details}
+                    fileName={`${threat.cve}-kev.json`}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     This CVE is listed in CISA KEV.
@@ -396,9 +436,9 @@ export default function ThreatDetailPanel({ threat, onClose }: Props) {
 
             <CardContent className="space-y-2">
               {threat.references?.length ? (
-                threat.references.map((reference) => (
+                threat.references.map((reference, index) => (
                   <a
-                    key={reference}
+                    key={`${reference}-${index}`}
                     href={reference}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -475,8 +515,11 @@ function TechnologyList({
 
       {values?.length ? (
         <div className="flex flex-wrap gap-2">
-          {values.map((value) => (
-            <span key={value} className="rounded-md bg-muted px-2 py-1 text-xs">
+          {values.map((value, index) => (
+            <span
+              key={`${value}-${index}`}
+              className="rounded-md bg-muted px-2 py-1 text-xs"
+            >
               {value}
             </span>
           ))}
@@ -507,9 +550,10 @@ function SourceAccordion({
     );
   }
 
+  const fileName = `${name.toLowerCase().replaceAll(" ", "-")}.json`;
+
   return (
     <details className="group overflow-hidden rounded-md border">
-      {/* Source Header */}
       <summary className="flex cursor-pointer list-none items-center justify-between p-3 hover:bg-muted/50">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">{name}</span>
@@ -520,11 +564,8 @@ function SourceAccordion({
         <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
       </summary>
 
-      {/* Pretty JSON Content */}
       <div className="border-t bg-muted/30 p-4">
-        <pre className="max-h-[600px] overflow-auto rounded-md border bg-background p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words">
-          {JSON.stringify(data, null, 2)}
-        </pre>
+        <RawJsonViewer data={data} fileName={fileName} />
       </div>
     </details>
   );

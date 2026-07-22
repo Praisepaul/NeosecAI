@@ -1,76 +1,76 @@
 import time
+
 from app.pipeline.threat_pipeline import pipeline
 from app.enrichers.enrichment_engine import engine
 from app.repositories.threat_repository import threat_repository
 from app.assets.asset_matcher import asset_matcher
+from app.assets.asset_repository import asset_repository
+from app.core.logger import logger
+
 
 class ThreatService:
 
     def get_all(self):
-        return threat_repository.get_all()
+        return threat_repository.get_all_summaries()
+
+    def get_by_cve(self, cve: str):
+        return threat_repository.get_by_cve(cve)
 
     def sync(self):
 
         total_start = time.perf_counter()
 
-        print("=" * 70)
-        print("Threat Synchronization Started")
-        print("=" * 70)
+        logger.info("=" * 70)
+        logger.info("Threat Synchronization Started")
+        logger.info("=" * 70)
 
         pipeline_result = pipeline.run()
 
         job = pipeline_result["job"]
-
         threats = pipeline_result["threats"]
-
         timings = pipeline_result["timings"]
 
-        print(f"Collector Download : {timings['collector']:.2f} sec")
-        print(f"NVD Normalize      : {timings['nvd_normalization']:.2f} sec")
-        print(f"Intelligence Collection : {timings['intelligence_collection']:.2f} sec")
-        print(f"Threat Merge       : {timings['merge']:.2f} sec")
+        logger.info(f"Collector Download       : {timings['collector']:.2f} sec")
+        logger.info(
+            f"NVD Normalize             : {timings['nvd_normalization']:.2f} sec"
+        )
+        logger.info(
+            f"Intelligence Collection   : {timings['intelligence_collection']:.2f} sec"
+        )
+        logger.info(f"Threat Merge              : {timings['merge']:.2f} sec")
 
-        stored = 0
+        assets = asset_repository.get_all()
 
-        #
-        # Enrich + Store
-        #
+        enrich_start = time.perf_counter()
 
-        enrich_time = 0
-        mongo_time = 0
+        enriched_threats = [
+            engine.enrich(asset_matcher.match(threat, assets=assets))
+            for threat in threats
+        ]
 
-        for threat in threats:
+        enrich_time = time.perf_counter() - enrich_start
 
-            t = time.perf_counter()
+        
+        mongo_start = time.perf_counter()
 
-            threat = asset_matcher.match(threat)
+        write_result = threat_repository.bulk_upsert(enriched_threats)
 
-            enriched = engine.enrich(threat)
+        mongo_time = time.perf_counter() - mongo_start
 
-            enrich_time += time.perf_counter() - t
+        logger.info(f"Enrichment                : {enrich_time:.2f} sec")
+        logger.info(f"MongoDB Bulk Write         : {mongo_time:.2f} sec")
 
-            t = time.perf_counter()
-
-            result = threat_repository.upsert(enriched)
-
-            mongo_time += time.perf_counter() - t
-
-            if result:
-                stored += 1
-
-        print(f"Enrichment           : {enrich_time:.2f} sec")
-
-        print(f"MongoDB Upserts      : {mongo_time:.2f} sec")
-
-        print("-" * 70)
-        print(f"TOTAL                : {time.perf_counter() - total_start:.2f} sec")
-        print("=" * 70)
+        logger.info("-" * 70)
+        logger.info(
+            f"TOTAL                      : {time.perf_counter() - total_start:.2f} sec"
+        )
+        logger.info("=" * 70)
 
         return {
             "status": "SUCCESS",
             "collector": "nvd",
             "downloaded": job["records"],
-            "stored": stored,
+            "stored": write_result["modified"] + write_result["upserted"],
             "started": job["started"],
             "finished": job["finished"],
         }

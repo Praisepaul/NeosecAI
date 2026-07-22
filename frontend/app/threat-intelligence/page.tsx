@@ -1,26 +1,37 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 import ThreatFilters from "@/components/threat-intelligence/ThreatFilters";
 import ThreatTable from "@/components/threat-intelligence/ThreatTable";
 import ThreatDetailPanel from "@/components/threat-intelligence/ThreatDetailPanel";
 import AppErrorState from "@/components/errors/AppErrorState";
+import { Button } from "@/components/ui/button";
 
-import { Threat } from "@/types/threat";
+import { useThreats } from "@/src/hooks/useThreats";
+import { syncThreats } from "@/services/threatService";
+import { classifyApiError } from "@/lib/apiError";
+import { useThreatDetails } from "@/src/hooks/useThreatDetails";
 
 export default function ThreatIntelPage() {
-  const [threats, setThreats] = useState<Threat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorType, setErrorType] = useState<
-    "network" | "api" | "unknown" | null
-  >(null);
+  const { threats, loading, error, retry } = useThreats();
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const [kevOnly, setKevOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState("ALL");
 
-  const [selectedThreat, setSelectedThreat] = useState<Threat | null>(null);
+  const [selectedCve, setSelectedCve] = useState<string | null>(null);
+
+  const {
+    threat: selectedThreat,
+    loading: detailLoading,
+    error: detailError,
+    retry: retryDetails,
+  } = useThreatDetails(selectedCve);
 
   /*
     |--------------------------------------------------------------------------
@@ -41,39 +52,6 @@ export default function ThreatIntelPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const rowsPerPage = 10;
-
-  /*
-    |--------------------------------------------------------------------------
-    | Fetch threats
-    |--------------------------------------------------------------------------
-    */
-
-  useEffect(() => {
-    async function fetchThreats() {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/api/threats/");
-
-        if (!response.ok) {
-          setErrorType("api");
-          return;
-        }
-
-        const data = await response.json();
-
-        setThreats(data);
-      } catch (error) {
-        if (error instanceof TypeError && error.message === "Failed to fetch") {
-          setErrorType("network");
-        } else {
-          setErrorType("unknown");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchThreats();
-  }, []);
 
   /*
     |--------------------------------------------------------------------------
@@ -244,12 +222,40 @@ export default function ThreatIntelPage() {
     setSeverity("ALL");
     setKevOnly(false);
 
-    // Reset sorting to default
     setSortColumn("severity");
     setSortDirection("desc");
 
-    // Reset pagination
     setCurrentPage(1);
+  }
+
+  /*
+    |--------------------------------------------------------------------------
+    | SYNC
+    |--------------------------------------------------------------------------
+    */
+
+  async function handleSync() {
+    if (syncing) return;
+
+    setSyncing(true);
+    setSyncMessage(null);
+
+    try {
+      const result = await syncThreats();
+
+      setSyncMessage(
+        `Synced - ${result.downloaded} downloaded, ${result.stored} stored.`,
+      );
+
+      // Pull the freshly-synced data into the table.
+      await retry();
+    } catch (err) {
+      const classified = classifyApiError(err);
+
+      setSyncMessage(`Sync failed: ${classified.message}`);
+    } finally {
+      setSyncing(false);
+    }
   }
 
   /*
@@ -268,15 +274,35 @@ export default function ThreatIntelPage() {
     |--------------------------------------------------------------------------
     */
 
-  if (errorType) {
-    return (
-      <AppErrorState
-        type={errorType}
-        onRetry={() => {
-          window.location.reload();
-        }}
-      />
-    );
+  if (error) {
+    let errorType: "network" | "timeout" | "backend" | "api" | "unknown";
+
+    switch (error) {
+      case "NETWORK_OFFLINE":
+        errorType = "network";
+        break;
+
+      case "REQUEST_TIMEOUT":
+        errorType = "timeout";
+        break;
+
+      case "BACKEND_UNREACHABLE":
+        errorType = "backend";
+        break;
+
+      case "UNAUTHORIZED":
+      case "FORBIDDEN":
+      case "NOT_FOUND":
+      case "SERVER_ERROR":
+      case "API_ERROR":
+        errorType = "api";
+        break;
+
+      default:
+        errorType = "unknown";
+    }
+
+    return <AppErrorState type={errorType} onRetry={retry} />;
   }
 
   /*
@@ -290,12 +316,30 @@ export default function ThreatIntelPage() {
       {/* Main Threat Intelligence Area */}
 
       <main className="h-full min-w-0 overflow-hidden p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Threat Intelligence</h1>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Threat Intelligence</h1>
 
-          <p className="text-muted-foreground">
-            Monitor vulnerabilities, exploitability, and affected technologies.
-          </p>
+            <p className="text-muted-foreground">
+              Monitor vulnerabilities, exploitability, and affected
+              technologies.
+            </p>
+
+            {syncMessage && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {syncMessage}
+              </p>
+            )}
+          </div>
+
+          <Button
+            onClick={handleSync}
+            disabled={syncing}
+            className="gap-2 shrink-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync Now"}
+          </Button>
         </div>
 
         {/* Filters */}
@@ -317,7 +361,7 @@ export default function ThreatIntelPage() {
         <div className="h-[calc(100%-140px)] overflow-hidden rounded-lg border">
           <ThreatTable
             threats={paginatedThreats}
-            onSelect={setSelectedThreat}
+            onSelect={(threat) => setSelectedCve(threat.cve)}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -332,22 +376,26 @@ export default function ThreatIntelPage() {
 
       {/* Foreground Overlay */}
 
-      {selectedThreat && (
+      {selectedCve && (
         <div className="absolute inset-0 z-50 flex items-center justify-center">
-          {/* Background overlay */}
-
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setSelectedThreat(null)}
+            onClick={() => setSelectedCve(null)}
           />
 
-          {/* Detail panel */}
-
           <div className="relative z-10 h-[90%] w-[90%] max-w-5xl overflow-hidden rounded-xl border bg-background shadow-2xl">
-            <ThreatDetailPanel
-              threat={selectedThreat}
-              onClose={() => setSelectedThreat(null)}
-            />
+            {detailLoading ? (
+              <div className="flex h-full items-center justify-center">
+                Loading threat details...
+              </div>
+            ) : detailError ? (
+              <AppErrorState type="api" onRetry={retryDetails} />
+            ) : selectedThreat ? (
+              <ThreatDetailPanel
+                threat={selectedThreat}
+                onClose={() => setSelectedCve(null)}
+              />
+            ) : null}
           </div>
         </div>
       )}

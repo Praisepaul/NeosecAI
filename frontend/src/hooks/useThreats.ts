@@ -1,89 +1,43 @@
 "use client";
 
-
-import {
-    useEffect,
-    useState,
-} from "react";
-
-
-import {
-    getThreats,
-} from "@/services/threatService";
-
-
-import {
-    Threat,
-} from "@/types/threat";
-
+import { useCallback, useEffect, useState } from "react";
+import { classifyApiError, ApiErrorType } from "@/lib/apiError";
+import { getThreats } from "@/services/threatService";
+import { ThreatSummary } from "@/types/threat";
+import { logger } from "../lib/logger";
 
 export function useThreats() {
+    const [threats, setThreats] = useState<ThreatSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<ApiErrorType | null>(null);
 
-    const [
-        threats,
-        setThreats,
-    ] = useState<Threat[]>([]);
+    const loadThreats = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
 
+            const data = await getThreats();
 
-    const [
-        loading,
-        setLoading,
-    ] = useState(true);
+            setThreats(data);
+        } catch (error) {
+            const classifiedError = classifyApiError(error);
 
+            logger.error("Threats API request failed", classifiedError);
 
-    const [
-        error,
-        setError,
-    ] = useState<string | null>(null);
-
-
-    useEffect(() => {
-
-        async function loadThreats() {
-
-            try {
-
-                setLoading(true);
-
-
-                const data =
-                    await getThreats();
-
-
-                setThreats(data);
-
-
-            } catch (err) {
-
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : "Failed to load threats"
-                );
-
-
-            } finally {
-
-                setLoading(false);
-
-            }
-
+            setError(classifiedError.type);
+        } finally {
+            setLoading(false);
         }
-
-
-        loadThreats();
-
     }, []);
 
+    useEffect(() => {
+        loadThreats();
+    }, [loadThreats]);
 
     return {
-
         threats,
-
         loading,
-
         error,
-
+        retry: loadThreats,
     };
-
 }

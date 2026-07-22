@@ -9,5 +9,10 @@ venv/
 dist/
 build/
 coverage/
-.vscode/settings.json
+.vscode/
 *.zip
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+*.egg-info/

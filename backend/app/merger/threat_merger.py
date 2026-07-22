@@ -114,6 +114,7 @@ class ThreatMerger:
             "metadata": {
                 "matched": False,
                 "matched_assets": [],
+                "matched_products": [],
                 "exploit_available": False,
                 "last_synced": None,
             },
@@ -236,25 +237,24 @@ class ThreatMerger:
     # ==========================================================
 
     # ==========================================================
-# CISA KEV
-# ==========================================================
-
+    # CISA KEV
+    # ==========================================================
 
     def _merge_kev(
         self,
         threat,
         cisa,
     ):
-    
+
         if not cisa:
-        
+
             return
-    
+
         threat["kev"] = cisa.get(
             "kev",
             False,
         )
-    
+
         threat["kev_details"] = deepcopy(cisa.get("kev_details"))
 
     # ==========================================================
