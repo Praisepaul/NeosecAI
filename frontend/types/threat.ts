@@ -1,108 +1,75 @@
 export interface CVSS {
-
-    version: string | null;
-
-    severity: string | null;
-
-    score: number | null;
-
-    vector: string | null;
-
+    version?: string | null;
+    severity?: string | null;
+    score?: number | null;
+    vector?: string | null;
 }
-
 
 export interface EPSS {
-
-    score: number;
-
-    percentile: number;
-
+    score?: number | null;
+    percentile?: number | null;
 }
 
+export interface MatchedAsset {
+    name: string;
+    aliases?: string[];
+    criticality?: number;
+    internet_facing?: boolean;
+}
 
 export interface Technology {
-
-    vendors: string[];
-
-    products: string[];
-
-    packages: string[];
-
-    repositories: string[];
-
-    ecosystems: string[];
-
-    versions: string[];
-
+    vendors?: string[];
+    products?: string[];
+    packages?: string[];
+    repositories?: string[];
+    ecosystems?: string[];
+    versions?: string[];
 }
 
-
-export interface ThreatMetadata {
-
-    matched: boolean;
-
-    matched_assets: string[];
-
-    exploit_available: boolean;
-
-    last_synced: string | null;
-
+export interface ThreatSources {
+    nvd?: any;
+    github?: any;
+    cisa?: any;
+    epss?: EPSS | null;
 }
-
-
-export interface ThreatSource {
-
-    [key: string]: any;
-
-}
-
 
 export interface Threat {
-
     cve: string;
 
-    title: string | null;
+    title?: string | null;
 
-    summary: string | null;
+    description?: string | null;
 
-    description: string | null;
+    published?: string | null;
 
-    published: string | null;
+    modified?: string | null;
 
-    modified: string | null;
+    cvss?: CVSS | null;
 
-    cvss: CVSS;
+    epss?: EPSS | null;
 
-    epss: EPSS | null;
+    kev?: boolean;
 
-    kev: boolean;
+    kev_details?: any;
 
-    kev_details: any;
+    risk_score?: number;
 
-    risk_score: number;
+    references?: string[];
 
-    references: string[];
+    cwes?: string[];
 
-    cwes: string[];
+    technology?: Technology;
 
-    technology: Technology;
+    matched?: boolean;
 
-    matched: boolean;
+    matched_assets?: MatchedAsset[];
 
-    matched_assets: string[];
+    sources?: ThreatSources;
 
-    metadata: ThreatMetadata;
-
-    sources: {
-
-        nvd: ThreatSource | null;
-
-        github: ThreatSource | null;
-
-        cisa: ThreatSource | null;
-
-        epss: ThreatSource | null;
-
+    metadata?: {
+        matched?: boolean;
+        matched_assets?: MatchedAsset[];
+        exploit_available?: boolean;
+        last_synced?: string | null;
     };
-
 }
