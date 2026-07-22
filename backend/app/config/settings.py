@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     mongo_max_idle_time_ms: int = 45000
 
     # --- NVD sync ---
-    nvd_results_per_page: int = 100
+    nvd_results_per_page: int = 1000
     nvd_sync_days: int = 7
     nvd_api_key: str = "8702e60f-233d-4ad2-82ef-b0f26bec551c"
 

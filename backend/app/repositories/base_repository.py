@@ -5,6 +5,8 @@ from app.core.logger import logger
 
 class BaseRepository:
 
+    BULK_BATCH_SIZE = 100
+
     def __init__(self, collection):
         self.collection = collection
 
@@ -37,6 +39,7 @@ class BaseRepository:
         )
 
     def bulk_upsert(self, documents, key="cve"):
+
         if not documents:
             return {
                 "matched": 0,
@@ -61,22 +64,44 @@ class BaseRepository:
                 "upserted": 0,
             }
 
-        result = self.collection.bulk_write(
-            operations,
-            ordered=False,
-        )
+        total_matched = 0
+        total_modified = 0
+        total_upserted = 0
 
-        upserted = len(result.upserted_ids or {})
+        for start in range(
+            0,
+            len(operations),
+            self.BULK_BATCH_SIZE,
+        ):
+
+            batch = operations[start : start + self.BULK_BATCH_SIZE]
+
+            result = self.collection.bulk_write(
+                batch,
+                ordered=False,
+            )
+
+            total_matched += result.matched_count
+            total_modified += result.modified_count
+            total_upserted += len(result.upserted_ids or {})
+
+            logger.info(
+                f"[Mongo] '{self.collection.name}' "
+                f"batch "
+                f"{min(start + len(batch), len(operations))}/"
+                f"{len(operations)}"
+            )
 
         logger.info(
-            f"[Mongo] bulk_write on '{self.collection.name}' -> "
-            f"matched={result.matched_count} "
-            f"modified={result.modified_count} "
-            f"upserted={upserted}"
+            f"[Mongo] bulk_write complete on "
+            f"'{self.collection.name}' -> "
+            f"matched={total_matched} "
+            f"modified={total_modified} "
+            f"upserted={total_upserted}"
         )
 
         return {
-            "matched": result.matched_count,
-            "modified": result.modified_count,
-            "upserted": upserted,
+            "matched": total_matched,
+            "modified": total_modified,
+            "upserted": total_upserted,
         }

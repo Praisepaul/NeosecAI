@@ -1,17 +1,14 @@
-from datetime import datetime, timedelta, timezone
-
 from pymongo import UpdateOne
 
 from app.core.database import db
 from app.core.logger import logger
 
+from datetime import datetime, timedelta, timezone
 
 class GitHubCacheRepository:
-    """Persists GitHub advisory lookups (including "no advisory found"
-    results) so repeated syncs don't re-query GitHub for the same CVE
-    inside the TTL window, and so we survive process restarts."""
 
     COLLECTION = "github_lookup_cache"
+    BATCH_SIZE = 100
 
     def get_recently_checked(self, cves: list[str], ttl_hours: int) -> dict:
 
@@ -21,33 +18,74 @@ class GitHubCacheRepository:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ttl_hours)
 
         docs = db[self.COLLECTION].find(
-            {"cve": {"$in": cves}, "checked_at": {"$gte": cutoff}}
+            {
+                "cve": {"$in": cves},
+                "checked_at": {"$gte": cutoff},
+            }
         )
 
         return {doc["cve"]: doc.get("data") for doc in docs}
 
-    def save_many(self, results: dict) -> None:
+    def save_many(self, items: dict):
 
-        if not results:
+        if not items:
             return
-
-        now = datetime.now(timezone.utc)
 
         operations = [
             UpdateOne(
                 {"cve": cve},
-                {"$set": {"cve": cve, "data": data, "checked_at": now}},
+                {
+                    "$set": {
+                        "cve": cve,
+                        "data": data,
+                        "checked_at": datetime.now(timezone.utc),
+                    }
+                },
                 upsert=True,
             )
-            for cve, data in results.items()
+            for cve, data in items.items()
         ]
 
-        result = db[self.COLLECTION].bulk_write(operations, ordered=False)
+        total = len(operations)
 
         logger.info(
-            f"[GitHub Cache] saved {len(operations)} lookups "
-            f"(matched={result.matched_count}, upserted={len(result.upserted_ids or {})})"
+            f"[GitHub Cache] Saving {total} records " f"in batches of {self.BATCH_SIZE}"
         )
 
+        saved = 0
+
+        for start in range(0, total, self.BATCH_SIZE):
+
+            batch = operations[start : start + self.BATCH_SIZE]
+
+            try:
+
+                result = db[self.COLLECTION].bulk_write(
+                    batch,
+                    ordered=False,
+                )
+
+                saved += len(batch)
+
+                logger.info(
+                    f"[GitHub Cache] Saved " f"{min(start + len(batch), total)}/{total}"
+                )
+
+                return result
+
+            except Exception as exc:
+
+                logger.exception(
+                    f"[GitHub Cache] Batch failed "
+                    f"{start}-{start + len(batch)}: {exc}"
+                )
+
+                # Do not necessarily kill the entire threat sync
+                continue
+
+        logger.info(
+            f"[GitHub Cache] Completed: "
+            f"{saved}/{total} batches successfully processed"
+        )
 
 github_cache_repository = GitHubCacheRepository()

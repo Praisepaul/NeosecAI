@@ -15,7 +15,11 @@ OVERLAP_MINUTES = 30
 
 class NVDCollector:
 
-    def collect(self, since: datetime | None = None):
+    def collect(
+        self,
+        since: datetime | None = None,
+        until: datetime | None = None,
+    ):
 
         end = datetime.now(timezone.utc)
 
@@ -49,8 +53,6 @@ class NVDCollector:
             while True:
 
                 params = {
-                    # lastMod (not pubStart/pubEnd) so CVEs that only got
-                    # a CVSS score / KEV flag updated are re-pulled too.
                     "lastModStartDate": start_date,
                     "lastModEndDate": end_date,
                     "resultsPerPage": page_size,
@@ -68,16 +70,29 @@ class NVDCollector:
 
                 vulnerabilities = data.get("vulnerabilities", [])
 
+                # No results means there is nothing more to download
+                if not vulnerabilities:
+                    logger.info("[NVD] No more vulnerabilities returned")
+                    break
+
                 all_vulnerabilities.extend(vulnerabilities)
 
                 logger.info(
-                    f"[NVD] Downloaded {len(all_vulnerabilities)}/{total_results}"
+                    "[NVD] Page: startIndex=%s | received=%s | total=%s",
+                    start_index,
+                    len(vulnerabilities),
+                    total_results,
                 )
 
-                if len(all_vulnerabilities) >= total_results:
+                # If the API returned fewer records than requested,
+                # this is the final page.
+                if len(vulnerabilities) < page_size:
                     break
 
-                start_index += page_size
+                start_index += len(vulnerabilities)
+
+                if start_index >= total_results:
+                    break
 
                 # Prevent NVD rate limiting
                 time.sleep(page_delay)

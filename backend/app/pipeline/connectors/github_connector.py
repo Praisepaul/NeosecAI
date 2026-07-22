@@ -36,6 +36,18 @@ class GitHubConnector:
             # advisory (data=None), so we don't re-ask GitHub about
             # them again inside the TTL window.
             to_cache = {cve: fresh.get(cve) for cve in remaining}
+            logger.info(
+                f"[GitHub] to_cache type: {type(to_cache)}"
+            )
+            
+            if isinstance(to_cache, dict):
+                logger.info(
+                    f"[GitHub] to_cache keys sample: {list(to_cache.keys())[:3]}"
+                )
+            else:
+                logger.info(
+                    f"[GitHub] to_cache sample: {to_cache[:3]}"
+                )
             github_cache_repository.save_many(to_cache)
 
         merged = {**cached, **fresh}
