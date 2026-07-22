@@ -5,15 +5,18 @@
       "aliases": [
         "grafana"
       ],
-      "criticality": 5,
+      "criticality": 4,
       "internet_facing": false
     },
     {
-      "name": "OpenSearch",
+      "name": "OpenAI",
       "aliases": [
-        "opensearch"
+        "openai",
+        "chatgpt",
+        "gpt",
+        "gpt-4"
       ],
-      "criticality": 5,
+      "criticality": 2,
       "internet_facing": false
     },
     {
@@ -38,7 +41,15 @@
       "aliases": [
         "amazon",
         "aws",
-        "amazon web services"
+        "amazon web services",
+        "amazon cloud",
+        "aws cloud",
+        "amazon ec2",
+        "aws ec2",
+        "amazon s3",
+        "aws s3",
+        "aws lambda",
+        "amazon lambda"
       ],
       "criticality": 5,
       "internet_facing": true
@@ -48,16 +59,52 @@
       "aliases": [
         "oracle",
         "oci",
-        "oracle cloud"
-      ],
-      "criticality": 5,
-      "internet_facing": true
-    },
-    {
-      "name": "OCI HPC",
-      "aliases": [
+        "oracle cloud",
+        "oracle cloud infrastructure",
+        "oracle cloud services",
+        "oci bucket",
+        "oci compute",
+        "oci database",
+        "oci object storage",
+        "oci networking",
+        "oci security",
+        "oci identity",
+        "oci monitoring",
+        "oci logging",
         "oci hpc",
-        "oracle cloud hpc"
+        "oci high performance computing",
+        "oracle cloud gpu",
+        "oracle gpu",
+        "oracle hpc",
+        "oracle high performance computing",
+        "oci gpu",
+        "oci cloud native",
+        "oci serverless",
+        "oci containers",
+        "oci kubernetes",
+        "oci devops",
+        "oci ci/cd",
+        "oci api gateway",
+        "oci load balancer",
+        "oci dns",
+        "oci vpn",
+        "oci firewall",
+        "oci bastion",
+        "oci security lists",
+        "oci vcn",
+        "oci subnets",
+        "oci route tables",
+        "oci internet gateway",
+        "oci nat gateway",
+        "oci service gateway",
+        "oci dynamic routing gateway",
+        "oci fastconnect",
+        "oci virtual cloud network",
+        "oci vcn peering",
+        "oci vcn security",
+        "oci vcn routing",
+        "oci vcn monitoring",
+        "oci vcn logging"
       ],
       "criticality": 5,
       "internet_facing": true
@@ -66,7 +113,14 @@
       "name": "Kubernetes",
       "aliases": [
         "kubernetes",
-        "k8s"
+        "k8s",
+        "oci kubernetes",
+        "aws kubernetes",
+        "eks",
+        "kubernetes cluster",
+        "kubernetes pod",
+        "kubernetes service",
+        "kubernetes deployment"
       ],
       "criticality": 4,
       "internet_facing": false
@@ -74,7 +128,11 @@
     {
       "name": "Docker",
       "aliases": [
-        "docker"
+        "docker",
+        "docker container",
+        "docker image",
+        "docker compose",
+        "docker swarm"
       ],
       "criticality": 4,
       "internet_facing": false
@@ -83,7 +141,9 @@
       "name": "ArgoCD",
       "aliases": [
         "argocd",
-        "argo cd"
+        "argo cd",
+        "argo continuous delivery",
+        "argo continuous deployment"
       ],
       "criticality": 4,
       "internet_facing": false
@@ -93,7 +153,8 @@
       "aliases": [
         "nvidia",
         "nvidia gpu",
-        "cuda"
+        "cuda",
+        "nvidia driver"
       ],
       "criticality": 5,
       "internet_facing": false
@@ -103,7 +164,9 @@
       "aliases": [
         "gb200",
         "grace blackwell",
-        "blackwell"
+        "blackwell",
+        "nvidia gb200"
+        
       ],
       "criticality": 5,
       "internet_facing": false
@@ -112,7 +175,20 @@
       "name": "Ubuntu",
       "aliases": [
         "ubuntu",
-        "ubuntu linux"
+        "ubuntu linux",
+        "ubuntu 20.04",
+        "ubuntu 22.04",
+        "ubuntu 24.04",
+        "ubuntu server",
+        "ubuntu desktop",
+        "ubuntu lts",
+        "ubuntu package",
+        "ubuntu apt",
+        "ubuntu snap",
+        "sudo",
+        "apt-get",
+        "apt",
+        "linux kernel"
       ],
       "criticality": 5,
       "internet_facing": true
@@ -122,7 +198,28 @@
       "aliases": [
         "windows 11",
         "windows 11 22h2",
-        "windows 11 24h2"
+        "windows 11 24h2",
+        "microsoft windows",
+        "microsoft windows 11",
+        "windows kernel",
+        "tpm",
+        "secure boot",
+        "bitlocker",
+        "windows update",
+        "windows powershell",
+        "powershell",
+        "cmd",
+        "command prompt",
+        "windows registry",
+        "windows services",
+        "windows event viewer",
+        "windows file explorer",
+        "windows virtual desktops",
+        "windows snap",
+        "windows clipboard",
+        "windows security",
+        "windows firewall",
+        "credential guard"
       ],
       "criticality": 5,
       "internet_facing": true
@@ -130,7 +227,9 @@
     {
       "name": "Git",
       "aliases": [
-        "git"
+        "git",
+        "git version control",
+        "git repository"
       ],
       "criticality": 4,
       "internet_facing": false
@@ -139,16 +238,33 @@
       "name": "GitHub",
       "aliases": [
         "github",
-        "github enterprise"
+        "github enterprise",
+        "github actions",
+        "github packages",
+        "github api",
+        "github cli",
+        "github desktop",
+        "github copilot",
+        "github codespaces",
+        "github dependabot",
+        "github secret scanning",
+        "github code scanning",
+        "github audit log",
+        "github organization",
+        "github repository"
       ],
-      "criticality": 5,
+      "criticality": 4,
       "internet_facing": true
     },
     {
       "name": "MongoDB",
       "aliases": [
         "mongodb",
-        "mongo db"
+        "mongo db",
+        "mongo database",
+        "mongodb atlas",
+        "mongodb cluster"
+
       ],
       "criticality": 5,
       "internet_facing": false
@@ -157,7 +273,16 @@
       "name": "Python",
       "aliases": [
         "python",
-        "python programming language"
+        "python 3",
+        "pip",
+        "python package",
+        "python module",
+        "python virtual environment",
+        "python django",
+        "python flask",
+        "python fastapi",
+        "python numpy",
+        "python venv"
       ],
       "criticality": 4,
       "internet_facing": false
@@ -166,17 +291,19 @@
       "name": "JavaScript",
       "aliases": [
         "javascript",
-        "ecmascript"
+        "ecmascript",
+        "js"
       ],
-      "criticality": 4,
+      "criticality": 2,
       "internet_facing": false
     },
     {
       "name": "TypeScript",
       "aliases": [
-        "typescript"
+        "typescript",
+        "ts"
       ],
-      "criticality": 4,
+      "criticality": 2,
       "internet_facing": false
     },
     {
@@ -184,9 +311,12 @@
       "aliases": [
         "react",
         "react.js",
-        "reactjs"
+        "reactjs",
+        "react native",
+        "react router"
+
       ],
-      "criticality": 4,
+      "criticality": 2,
       "internet_facing": true
     },
     {
@@ -194,9 +324,13 @@
       "aliases": [
         "node.js",
         "nodejs",
-        "node"
+        "node",
+        "npm",
+        "yarn",
+        "node package manager",
+        "node module"
       ],
-      "criticality": 4,
+      "criticality": 2,
       "internet_facing": true
     },
     {
@@ -220,14 +354,15 @@
         "fortimanager",
         "fortianalyzer"
       ],
-      "criticality": 5,
+      "criticality": 3,
       "internet_facing": true
     },
     {
       "name": "Terraform",
       "aliases": [
         "terraform",
-        "hashicorp terraform"
+        "hashicorp terraform",
+        "terraform module"
       ],
       "criticality": 4,
       "internet_facing": false
@@ -239,7 +374,7 @@
         "oauth 2.0",
         "oauth2"
       ],
-      "criticality": 5,
+      "criticality": 3,
       "internet_facing": true
     },
     {
@@ -249,7 +384,7 @@
         "json web token",
         "json web tokens"
       ],
-      "criticality": 5,
+      "criticality": 3,
       "internet_facing": true
     },
     {
@@ -264,16 +399,20 @@
     {
       "name": "Gmail",
       "aliases": [
-        "gmail"
+        "gmail",
+        "google mail",
+        "google email",
+        "google workspace email",
+        "google workspace mail"
       ],
-      "criticality": 4,
+      "criticality": 5,
       "internet_facing": true
     },
     {
       "name": "Google Sheets",
       "aliases": [
         "google sheets",
-        "sheets"
+        "google spreadsheet"
       ],
       "criticality": 3,
       "internet_facing": true
@@ -304,18 +443,41 @@
         "data studio",
         "looker studio"
       ],
-      "criticality": 4,
+      "criticality": 2,
       "internet_facing": true
     },
     {
       "name": "Dell",
       "aliases": [
         "dell",
-        "dell emc",
-        "poweredge"
+        "dell support assistant",
+        "dell command update",
+        "dell command configure"
+      ],
+      "criticality": 2,
+      "internet_facing": false
+    },
+    {
+      "name": "Netskope",
+      "aliases": [
+        "netskope",
+        "netskope cloud security",
+        "netskope cloud access security broker",
+        "netskope casb"
       ],
       "criticality": 5,
-      "internet_facing": false
+      "internet_facing": true
+    },
+    {
+      "name": "claude",
+      "aliases": [
+        "claude",
+        "anthropic claude",
+        "claude ai",
+        "claude agent"
+      ],
+      "criticality": 3,
+      "internet_facing": true
     }
   ]
 }
