@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # --- NVD sync ---
     nvd_results_per_page: int = 1000
     nvd_sync_days: int = 7
-    nvd_api_key: str = "8702e60f-233d-4ad2-82ef-b0f26bec551c"
+    nvd_api_key: str
 
     # --- HTTP ---
     http_timeout: int = 20
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # --- CORS ---
     # Comma separated list, e.g. "http://localhost:3000,https://app.example.com"
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str
 
     # --- Logging ---
     log_level: str = "INFO"

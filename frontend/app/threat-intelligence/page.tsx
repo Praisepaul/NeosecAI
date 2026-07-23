@@ -249,10 +249,20 @@ export default function ThreatIntelPage() {
 
       // Pull the freshly-synced data into the table.
       await retry();
+
+      setTimeout(() => {
+      setSyncMessage(null);
+    }, 3000);
+
     } catch (err) {
       const classified = classifyApiError(err);
 
       setSyncMessage(`Sync failed: ${classified.message}`);
+
+       setTimeout(() => {
+         setSyncMessage(null);
+       }, 5000);
+
     } finally {
       setSyncing(false);
     }
@@ -324,22 +334,23 @@ export default function ThreatIntelPage() {
               Monitor vulnerabilities, exploitability, and affected
               technologies.
             </p>
+          </div>
 
+          <div className="flex items-center gap-3 shrink-0">
             {syncMessage && (
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground whitespace-nowrap">
                 {syncMessage}
               </p>
             )}
-          </div>
 
-          <Button
-            onClick={handleSync}
-            disabled={syncing}
-            className="gap-2 shrink-0"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing..." : "Sync Now"}
-          </Button>
+            <Button onClick={handleSync} disabled={syncing} className="gap-2">
+              <RefreshCw
+                className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+              />
+
+              {syncing ? "Syncing..." : "Sync Now"}
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}

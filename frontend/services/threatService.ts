@@ -35,6 +35,7 @@ export async function syncThreats(): Promise<SyncResult> {
     const response = await api.post<SyncResult>("/api/threats/sync", null, {
         timeout: 5 * 60 * 1000,
     });
+    
 
     return response.data;
 }

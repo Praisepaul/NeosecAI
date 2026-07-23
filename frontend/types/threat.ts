@@ -32,6 +32,11 @@ export interface ThreatSummary {
     matched_assets?: MatchedAsset[];
 
     matched_products?: MatchedProduct[];
+
+    technology?: {
+        products?: string[];
+        vendors?: string[];
+    };
 }
 
 export interface Threat extends ThreatSummary {

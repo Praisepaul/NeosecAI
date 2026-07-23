@@ -23,7 +23,7 @@ class GitHubCollector:
 
             response = await client.get(
                 "https://api.github.com/advisories",
-                params={"cve": cve},
+                params={"cve_id": cve},
             )
 
             if response.status_code == 403:
